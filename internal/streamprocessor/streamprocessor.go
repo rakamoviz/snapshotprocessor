@@ -30,7 +30,7 @@ type (
 type StreamProcessor[T1 any, T2 any, T3 any] interface {
 	Run(
 		path string,
-		t1SaveMode EntitySaveMode, t2SaveMode EntitySaveMode,
+		t1SaveMode EntitySaveMode, t2SaveMode EntitySaveMode, t3SaveMode EntitySaveMode,
 		reportCh chan models.StreamProcessingReport,
 		parseLine ParseLine[T1, T2, T3],
 	) error

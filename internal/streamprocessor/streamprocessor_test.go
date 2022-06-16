@@ -38,10 +38,11 @@ func TestStreamProcessor(t *testing.T) {
 
 	streamProcessingReportCh := make(chan models.StreamProcessingReport)
 	go streamProcessor.Run(
-		"/home/rcokorda/Projects/snapshotprocessor/scratchpad/dataset.csv",
-		SaveMode_InsertIfInexist, SaveMode_Noop, streamProcessingReportCh,
-		func(line string) (*models.Airport, *models.Airport, error) {
-			return &models.Airport{}, nil, nil
+		"/home/rcokorda/Projects/snapshotprocessor/sandbox/dataset.csv",
+		SaveMode_InsertIfInexist, SaveMode_InsertIfInexist, SaveMode_Insert,
+		streamProcessingReportCh,
+		func(line string) (*models.Cluster, *models.Node, *models.NodeStatus, error) {
+			return nil, nil, nil, nil
 		},
 	)
 

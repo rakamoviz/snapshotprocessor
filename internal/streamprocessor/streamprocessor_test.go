@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
+	"strings"
 	"testing"
+	"time"
 
 	"bitbucket.org/rakamoviz/snapshotprocessor/internal/db/models"
 	"bitbucket.org/rakamoviz/snapshotprocessor/internal/db/models/streamprocessingstatus"
@@ -38,11 +41,35 @@ func TestStreamProcessor(t *testing.T) {
 
 	streamProcessingReportCh := make(chan models.StreamProcessingReport)
 	go streamProcessor.Run(
-		"/home/rcokorda/Projects/snapshotprocessor/sandbox/dataset.csv",
+		"/home/rcokorda/Projects/snapshotprocessor/sandbox/snapshots.csv",
+		true,
 		SaveMode_InsertIfInexist, SaveMode_InsertIfInexist, SaveMode_Insert,
 		streamProcessingReportCh,
 		func(line string) (*models.Cluster, *models.Node, *models.NodeStatus, error) {
-			return nil, nil, nil, nil
+			columns := strings.Split(line, ",")
+			if len(columns) < 6 {
+				return nil, nil, nil, fmt.Errorf("%v: has less than 6 columns", line)
+			}
+
+			pCluster := &models.Cluster{
+				Code: columns[0][1 : len(columns[0])-1],
+			}
+			pNode := &models.Node{
+				Code:      columns[1][1 : len(columns[1])-1],
+				ClusterID: pCluster.Code,
+			}
+
+			timestamp, err := strconv.ParseInt(strings.Trim(columns[2], " "), 0, 64)
+			if err != nil {
+				return nil, nil, nil, err
+			}
+
+			pNodeStatus := &models.NodeStatus{
+				NodeID: pNode.Code,
+				Time:   time.Unix(timestamp, 0),
+			}
+
+			return pCluster, pNode, pNodeStatus, nil
 		},
 	)
 

@@ -2,6 +2,7 @@ package streamprocessor
 
 import (
 	"bufio"
+	"fmt"
 	"log"
 	"sync"
 
@@ -30,6 +31,7 @@ type (
 type StreamProcessor[T1 any, T2 any, T3 any] interface {
 	Run(
 		path string,
+		ignoreFirst bool,
 		t1SaveMode EntitySaveMode, t2SaveMode EntitySaveMode, t3SaveMode EntitySaveMode,
 		reportCh chan models.StreamProcessingReport,
 		parseLine ParseLine[T1, T2, T3],
@@ -192,6 +194,7 @@ func (streamProcessor streamProcessorStruct[T1, T2, T3]) processChunk(
 
 func (streamProcessor streamProcessorStruct[T1, T2, T3]) Run(
 	path string,
+	ignoreFirst bool,
 	t1SaveMode EntitySaveMode, t2SaveMode EntitySaveMode, t3SaveMode EntitySaveMode,
 	reportCh chan models.StreamProcessingReport,
 	parseLine ParseLine[T1, T2, T3],
@@ -251,6 +254,14 @@ func (streamProcessor streamProcessorStruct[T1, T2, T3]) Run(
 	}
 
 	for scanner.Scan() {
+		if ignoreFirst {
+			fmt.Println("================= IGNORE")
+			ignoreFirst = false
+			continue
+		} else {
+			fmt.Println("================= NOT IGNORE")
+		}
+
 		line := scanner.Text()
 
 		if chunkLineOffset%CHUNK_LEN == 0 {

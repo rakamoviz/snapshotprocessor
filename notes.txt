@@ -1,0 +1,103 @@
+======================
+On the file processing
+======================
+
+File in
+
+Batch
+Don't trust.
+
+===========
+Integration
+===========
+
+Provide 3 endpoints:
+1. For data provider:
+   POST /streamprocessings
+   {
+     "file_path": "s3://amzn.com/234kughuyi23asdvn.csv
+   }
+   
+   - The provider_id can be resolved in the middleware based on the API key
+   - This will create an instance of StreamProcessing in our database (for further monitoring, audit, etc)
+     - It's a metadata. It tells us when, from whom, from where the data we are processing.
+   - This will immediately return the streamprocessing ID, for further lookups (by polling / ad-hoc):
+     {id: 1234}
+   - Our code will also queue this in a job scheduler or SQS. Practically the same, a worker will pick it up at some point.
+   - That worker will invoke the ProcessStream method of streamprocessor
+   - StreamProcessing has states:
+     - NotStarted
+     - Running
+     - Succes (100%)
+     - Failed (0%)
+     - PartialSuccess
+   - Other data we keep in StreamProcessing are:
+     - SuccessfulInsertsCount
+     - ErrorsCount
+
+     Assumption: we don't know the number of lines to be processed in advance. It's a stream.
+     So, the Success/Failed status is determined from the numbers of ErrorsCount and SuccessfulInsertsCount., ç
+     If ErrorsCount == 0, Success
+     If SuccessfulInsertsCount == 0, Failed
+
+     There is another entity called LineProcessingError. The relationship between StreamProcessing and LineProcessingError is:
+     StreamProcessing has 0-to-many LineProcessingError
+     LineProcessingError keeps the following data:
+     - LineNumber
+     - Error
+
+2. For operation (monitoring of ingestion)
+   1. GET /streamprocessings?id=1234
+      This will return a representation of streamprocessing we previously stored in the database (and in the job queue):
+      {id: 1234, status: "Running", successfulInsertsCount: 123, errorsCount: 45, startedAt: "2022-06-10T00:23:21.000+00:00"}
+
+   2. GET /lineprocessingerrors?streamprocessing_id=1234
+      Considering the fact we can have thousands records of this.
+
+3. For end-users (client services):
+   1. GET /airports/weather?code=LAX&time=2022-06-10T10:00:22+GMT
+      {"temperature":27.5, "resume": "Sunny", ..., "time": "2022-06-10T10:00:22+GMT"}
+
+   2. GET /flight/weather?number=XYZ123
+      {
+        "time": "2022-06-10T10:00:22+GMT"
+        "departure": {
+          "airportCode": "LAX", "temperature":27.5, "resume": "Sunny", ..., 
+        }
+        "arrival": {
+          "airportCode": "LAX", "temperature":27.5, "resume": "Sunny", ...,
+        }
+      }
+
+   This can be useful for mobile-app where user can check from time to time the climate of the airports at any time.
+
+
+4. However the challenge seems to be about sending notifications to ticket holders, thousands of them. Fortunately there's a couple of clauses in the challenge that helps simplifying the solution: "entregar el informe del clima de la ciudad de salidad y ciudad de llegada para 3 mil tickets que salen el mismo dia que se corre el algoritmo". Let's break it down:
+   1. "que salen el mismo dia que se corre el algoritmo". First, it says "day". Not "datetime". This simplifies a lot, because we can query for the flights using range filter for the departure_date and arrival date.
+
+   The queries would be:
+
+   1. select origin from flights where (departure_date >= 2022-06-10T00:00:00+0 and departure_date < 2022-06-11T00:00:00+0) or (departure_date >= 2022-06-10T00:00:00+0 and departure_date < 2022-06-11T00:00:00+0);
+
+   2. select destination from flights where (departure_date >= 2022-06-10T00:00:00+0 and departure_date < 2022-06-11T00:00:00+0) or (departure_date >= 2022-06-10T00:00:00+0 and departure_date < 2022-06-11T00:00:00+0);
+
+   Why 2 separate queries? Because we want to minimize request to (paid) weather service. So, we don't want to make request for the same location twice or more. In fact, the results of those two queries have to be processed again in the memory, to eliminate duplicates.
+
+   3. select id from flights where (departure_date >= 2022-06-10T00:00:00+0 and departure_date < 2022-06-11T00:00:00+0) or (departure_date >= 2022-06-10T00:00:00+0 and departure_date < 2022-06-11T00:00:00+0);
+
+   Why do we query for flight IDs? Because we want query the tickets of all those flights. Those ticket holders will be sent the notification.
+
+   Or we can use a join to go straight to tickets table:
+   
+   4. select tickets.id ticket_id, flights.id flight_id, tickets.passenger passenger from flights inner join ticket on flights.id = tickets.flight_id where (flights.departure_date >= 2022-06-10T00:00:00+0 and flights.departure_date < 2022-06-11T00:00:00+0) or (flights.departure_date >= 2022-06-10T00:00:00+0 and flights.departure_date < 2022-06-11T00:00:00+0);
+   
+   This is going to be a background in the backend, an end-of-day job (repeated scheduling).
+
+   
+
+   1. First we need to find all DISTINCT airports from all the  on the specified day.
+
+
+
+
+On multithreading

@@ -1,0 +1,5 @@
+executables/
+*.swp
+*.tdb
+*.tdb-journal
+*.db

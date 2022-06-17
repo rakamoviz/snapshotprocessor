@@ -33,8 +33,8 @@ type NodeStatus struct {
 }
 
 type ChunkProcessingReport struct {
-	SavesCount  uint32
-	ErrorsCount uint32
+	SuccessCount uint32
+	ErrorsCount  uint32
 }
 
 type StreamProcessingReport struct {
@@ -46,15 +46,9 @@ type StreamProcessingReport struct {
 
 type LineProcessingError struct {
 	gorm.Model
-	ProcessedLineID uint
-	ProcessedLine   ProcessedLine
-	Error           string
-}
-
-type ProcessedLine struct {
-	gorm.Model
 	LineNumber uint32
 	Line       string
 	ReportID   uint
 	Report     StreamProcessingReport
+	Error      string
 }

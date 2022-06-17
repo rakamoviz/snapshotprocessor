@@ -25,10 +25,9 @@ func TestStreamProcessor(t *testing.T) {
 	gormDB.AutoMigrate(
 		&models.Cluster{}, &models.Node{}, &models.NodeStatus{},
 		&models.StreamProcessingReport{}, &models.LineProcessingError{},
-		&models.ProcessedLine{},
 	)
 
-	streamProcessor := MakeStreamProcessor[models.Cluster, models.Node, models.NodeStatus](gormDB, func(path string) (*bufio.Scanner, error) {
+	streamProcessor := MakeStreamProcessor(gormDB, func(path string) (*bufio.Scanner, error) {
 		file, err := os.Open(path)
 
 		if err != nil {
@@ -44,40 +43,56 @@ func TestStreamProcessor(t *testing.T) {
 	go streamProcessor.Run(
 		"/home/rcokorda/Projects/snapshotprocessor/sandbox/snapshots.csv",
 		true,
-		SaveMode_InsertIfInexist, SaveMode_InsertIfInexist, SaveMode_Insert,
 		streamProcessingReportCh,
-		func(line string) (*models.Cluster, *models.Node, *models.NodeStatus, error) {
+		func(line string, gormDB *gorm.DB) error {
 			columns := strings.Split(line, ",")
 			if len(columns) < 6 {
-				return nil, nil, nil, fmt.Errorf("%v: has less than 6 columns", line)
+				return fmt.Errorf("%v: has less than 6 columns", line)
 			}
 
-			pCluster := &models.Cluster{
-				Code: columns[0][1 : len(columns[0])-1],
-			}
+			return gormDB.Transaction(func(tx *gorm.DB) error {
+				pCluster := &models.Cluster{
+					Code: columns[0][1 : len(columns[0])-1],
+				}
 
-			pNode := &models.Node{
-				Code:      columns[1][1 : len(columns[1])-1],
-				ClusterID: pCluster.Code,
-			}
+				err := gormDB.FirstOrCreate(pCluster, *pCluster).Error
+				if err != nil {
+					return err
+				}
 
-			timestamp, err := strconv.ParseInt(strings.Trim(columns[2], " "), 0, 64)
-			if err != nil {
-				return nil, nil, nil, err
-			}
+				pNode := &models.Node{
+					Code:      columns[1][1 : len(columns[1])-1],
+					ClusterID: pCluster.Code,
+				}
 
-			pNodeStatus := &models.NodeStatus{
-				NodeID: pNode.Code,
-				Time:   time.Unix(timestamp, 0),
-			}
+				err = gormDB.FirstOrCreate(pNode, *pNode).Error
+				if err != nil {
+					return err
+				}
 
-			return pCluster, pNode, pNodeStatus, nil
+				timestamp, err := strconv.ParseInt(strings.Trim(columns[2], " "), 0, 64)
+				if err != nil {
+					return err
+				}
+
+				pNodeStatus := &models.NodeStatus{
+					NodeID: pNode.Code,
+					Time:   time.Unix(timestamp, 0),
+				}
+
+				err = gormDB.Create(pNodeStatus).Error
+				if err != nil {
+					return err
+				}
+
+				return nil
+			})
 		},
 	)
 
 	for {
 		report := <-streamProcessingReportCh
-		fmt.Printf("Report. Status: %v, Saves:%v, Errors:%v\n", report.Status, report.SavesCount, report.ErrorsCount)
+		fmt.Printf("Report. Status: %v, Success:%v, Errors:%v\n", report.Status, report.SuccessCount, report.ErrorsCount)
 		if report.Status != streamprocessingstatus.Running && report.Status != streamprocessingstatus.Undefined {
 			break
 		}

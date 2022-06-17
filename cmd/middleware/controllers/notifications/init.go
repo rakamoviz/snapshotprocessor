@@ -4,6 +4,6 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func registerHandlers(g *echo.Group) {
-	g.POST("/", receive)
+func Bind(g *echo.Group) {
+	g.GET("/", receive)
 }

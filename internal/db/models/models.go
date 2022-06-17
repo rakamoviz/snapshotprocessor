@@ -10,9 +10,7 @@ import (
 
 type Cluster struct {
 	gorm.Model
-	Code string          `gorm:"column:code;uniqueIndex;"`
-	Lat  decimal.Decimal `gorm:"not null;type=decimal(3,15);"`
-	Lng  decimal.Decimal `gorm:"not null;type=decimal(3,15);"`
+	Code string `gorm:"column:code;uniqueIndex;"`
 }
 
 type Node struct {

@@ -12,9 +12,8 @@ func main() {
 	e := echo.New()
 
 	notificationsGroup := e.Group("/notifications")
-	notifications.RegisterHandlers(notifications)
+	notifications.Bind(notificationsGroup)
 
-	notificationsGroup := notifications.Bind("/notifications", e)
 	fmt.Println(notificationsGroup)
 
 	e.GET("/", func(c echo.Context) error {

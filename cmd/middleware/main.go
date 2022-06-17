@@ -1,23 +1,43 @@
 package main
 
 import (
-	"net/http"
-
-	"bitbucket.org/rakamoviz/snapshotprocessor/cmd/middleware/controllers/notifications"
-	"fmt"
+	"bitbucket.org/rakamoviz/snapshotprocessor/cmd/middleware/controllers"
+	"bitbucket.org/rakamoviz/snapshotprocessor/internal/streamprocessor"
+	"bufio"
 	"github.com/labstack/echo/v4"
+	"log"
+	"os"
+
+	"bitbucket.org/rakamoviz/snapshotprocessor/internal/db/models"
+	"github.com/glebarez/sqlite"
+	"gorm.io/gorm"
 )
 
 func main() {
-	e := echo.New()
+	sqliteDb := sqlite.Open("test_streamprocessor.tdb?_pragma=busy_timeout(30000)")
+	gormDB, err := gorm.Open(sqliteDb, &gorm.Config{})
+	if err != nil {
+		panic("failed to connect database")
+	}
+	gormDB.AutoMigrate(
+		&models.Cluster{}, &models.Node{}, &models.NodeStatus{},
+		&models.StreamProcessingReport{}, &models.LineProcessingError{},
+	)
+	streamProcessor := streamprocessor.MakeStreamProcessor(gormDB, func(path string) (*bufio.Scanner, error) {
+		file, err := os.Open(path)
 
-	notificationsGroup := e.Group("/notifications")
-	notifications.Bind(notificationsGroup)
+		if err != nil {
+			log.Fatalf("failed to open")
 
-	fmt.Println(notificationsGroup)
-
-	e.GET("/", func(c echo.Context) error {
-		return c.String(http.StatusOK, "Hello, World!")
+		}
+		scanner := bufio.NewScanner(file)
+		scanner.Split(bufio.ScanLines)
+		return scanner, nil
 	})
+
+	e := echo.New()
+	apiGroup := e.Group("/api")
+	controllers.Setup(apiGroup, streamProcessor)
+
 	e.Logger.Fatal(e.Start(":1323"))
 }

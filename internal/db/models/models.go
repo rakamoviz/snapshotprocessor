@@ -46,9 +46,15 @@ type StreamProcessingReport struct {
 
 type LineProcessingError struct {
 	gorm.Model
-	LineNumber int
+	ProcessedLineID uint
+	ProcessedLine   ProcessedLine
+	Error           string
+}
+
+type ProcessedLine struct {
+	gorm.Model
+	LineNumber uint32
 	Line       string
-	Error      string
 	ReportID   uint
 	Report     StreamProcessingReport
 }

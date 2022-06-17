@@ -1,11 +1,12 @@
 package creates
 
 import (
+	"time"
+
 	"bitbucket.org/rakamoviz/snapshotprocessor/internal/db/models"
 	"bitbucket.org/rakamoviz/snapshotprocessor/internal/db/repository"
 	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
-	"time"
 )
 
 func CreateNodeStatus(

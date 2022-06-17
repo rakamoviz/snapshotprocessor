@@ -1,6 +1,8 @@
 package creates
 
 import (
+	"fmt"
+
 	"bitbucket.org/rakamoviz/snapshotprocessor/internal/db/models"
 	"bitbucket.org/rakamoviz/snapshotprocessor/internal/db/repository"
 	"gorm.io/gorm"
@@ -17,6 +19,9 @@ func CreateNode(
 			ClusterID: clusterID,
 		}
 
+		fmt.Println("-----------------------------------------------------------")
+		fmt.Println(pNode)
+		fmt.Println("-----------------------------------------------------------")
 		err = gormDB.Create(pNode).Error
 
 		return pNode, err

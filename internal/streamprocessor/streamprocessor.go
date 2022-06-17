@@ -2,13 +2,13 @@ package streamprocessor
 
 import (
 	"bufio"
-	"fmt"
 	"log"
 	"sync"
 
 	"bitbucket.org/rakamoviz/snapshotprocessor/internal/db/models"
 	"bitbucket.org/rakamoviz/snapshotprocessor/internal/db/models/streamprocessingstatus"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 const CHUNK_LEN = 5
@@ -28,6 +28,28 @@ type (
 	OpenScanner                       func(path string) (*bufio.Scanner, error)
 )
 
+type lpErrorsAppender[T any] struct {
+}
+
+func (appender lpErrorsAppender[T]) append(
+	lpErrors []models.LineProcessingError, failingElts []entityProcessedLineTuple[T],
+) []models.LineProcessingError {
+	if len(failingElts) == 0 {
+		return lpErrors
+	}
+
+	newLpErrors := make([]models.LineProcessingError, len(lpErrors)+len(failingElts))
+	copy(newLpErrors, lpErrors)
+	for idx, failingElt := range failingElts {
+		newLpErrors[idx+len(lpErrors)] = models.LineProcessingError{
+			ProcessedLine: failingElt.processedLine,
+			Error:         failingElt.err.Error(),
+		}
+	}
+
+	return newLpErrors
+}
+
 type StreamProcessor[T1 any, T2 any, T3 any] interface {
 	Run(
 		path string,
@@ -45,49 +67,56 @@ type streamProcessorStruct[T1 any, T2 any, T3 any] struct {
 
 type entitiesSaver[T any] struct{ gormDB *gorm.DB }
 
-func (saver entitiesSaver[T]) Perform(saveMode EntitySaveMode, entities []*T) (uint32, uint32) {
-	savesCount := uint32(0)
-	errorsCount := uint32(0)
-
+func (saver entitiesSaver[T]) Perform(saveMode EntitySaveMode, elts []entityProcessedLineTuple[T]) []entityProcessedLineTuple[T] {
+	failingElts := make([]entityProcessedLineTuple[T], 0, len(elts))
 	switch saveMode {
 	case SaveMode_Insert:
-		for _, entity := range entities {
-			tx := saver.gormDB.Create(entity)
-			if tx.Error == nil {
-				savesCount++
-			} else {
-				errorsCount++
+		for _, elt := range elts {
+			err := saver.gormDB.Create(&elt.entity).Error
+			if err != nil {
+				failingElt := elt
+				failingElt.err = err
+				failingElts = append(failingElts, failingElt)
 			}
 		}
 	case SaveMode_InsertIfInexist:
-		for _, entity := range entities {
-			tx := saver.gormDB.FirstOrCreate(entity)
-			if tx.Error == nil {
-				savesCount++
-			} else {
-				errorsCount++
+		for _, elt := range elts {
+
+			err := saver.gormDB.FirstOrCreate(&elt.entity, elt.entity).Error
+			if err != nil {
+				failingElt := elt
+				failingElt.err = err
+				failingElts = append(failingElts, failingElt)
 			}
 		}
 	case SaveMode_Update:
-		for _, entity := range entities {
-			tx := saver.gormDB.Save(entity)
-			if tx.Error == nil {
-				savesCount++
-			} else {
-				errorsCount++
+		for _, elt := range elts {
+			err := saver.gormDB.Save(&elt.entity).Error
+			if err != nil {
+				failingElt := elt
+				failingElt.err = err
+				failingElts = append(failingElts, failingElt)
 			}
 		}
 	case SaveMode_Upsert:
-		for _, entity := range entities {
-			tx := saver.gormDB.Save(entity)
-			if tx.Error == nil {
-				savesCount++
-			} else {
-				errorsCount++
+		for _, elt := range elts {
+			err := saver.gormDB.Clauses(clause.OnConflict{
+				UpdateAll: true,
+			}).Create(&elt.entity).Error
+			if err != nil {
+				failingElt := elt
+				failingElt.err = err
+				failingElts = append(failingElts, failingElt)
 			}
 		}
 	}
-	return savesCount, errorsCount
+	return failingElts
+}
+
+type entityProcessedLineTuple[T any] struct {
+	entity        T
+	processedLine models.ProcessedLine
+	err           error
 }
 
 func MakeStreamProcessor[T1 any, T2 any, T3 any](gormDB *gorm.DB, openScanner OpenScanner) StreamProcessor[T1, T2, T3] {
@@ -95,101 +124,116 @@ func MakeStreamProcessor[T1 any, T2 any, T3 any](gormDB *gorm.DB, openScanner Op
 }
 
 func (streamProcessor streamProcessorStruct[T1, T2, T3]) processChunk(
-	chunk []string, chunkId int, parseLine ParseLine[T1, T2, T3],
+	ignoreFirst bool, chunk []string, chunkId int, parseLine ParseLine[T1, T2, T3],
 	t1SaveMode EntitySaveMode, t2SaveMode EntitySaveMode, t3SaveMode EntitySaveMode,
 	report models.StreamProcessingReport,
 ) models.ChunkProcessingReport {
-	lineNumberOffset := chunkId * CHUNK_LEN
+	lineNumberOffset := uint32((chunkId * CHUNK_LEN) + 1)
+	if ignoreFirst {
+		lineNumberOffset += uint32(1)
+	}
 
-	var entities1 []*T1
-	var entities2 []*T2
-	var entities3 []*T3
+	var elts1 []entityProcessedLineTuple[T1]
+	var elts2 []entityProcessedLineTuple[T2]
+	var elts3 []entityProcessedLineTuple[T3]
 
 	if t1SaveMode != SaveMode_Noop {
-		entities1 = make([]*T1, len(chunk))
+		elts1 = make([]entityProcessedLineTuple[T1], 0, len(chunk))
 	}
 
 	if t2SaveMode != SaveMode_Noop {
-		entities2 = make([]*T2, len(chunk))
+		elts2 = make([]entityProcessedLineTuple[T2], 0, len(chunk))
 	}
 
 	if t3SaveMode != SaveMode_Noop {
-		entities3 = make([]*T3, len(chunk))
+		elts3 = make([]entityProcessedLineTuple[T3], 0, len(chunk))
 	}
 
-	lpErrors := make([]models.LineProcessingError, len(chunk))
-
-	lpErrorsIndex := 0
-	entities1Index := 0
-	entities2Index := 0
-	entities3Index := 0
+	lineParsingErrors := make([]models.LineProcessingError, 0, len(chunk))
 
 	for i, line := range chunk {
-		entity1, entity2, entity3, err := parseLine(line)
+		lineNumber := uint32(lineNumberOffset) + uint32(i)
+		processedLine := models.ProcessedLine{
+			LineNumber: lineNumber,
+			Line:       line,
+			Report:     report,
+		}
+
+		err := streamProcessor.gormDB.Create(&processedLine).Error
+
 		if err != nil {
-			lpErrors[lpErrorsIndex] = models.LineProcessingError{
-				LineNumber: lineNumberOffset + i,
-				Line:       line,
-				Error:      err.Error(),
-				Report:     report,
-			}
-			lpErrorsIndex++
+			log.Printf("Failed saving line: %v for %v\n", line, err.Error())
+			continue
+		}
+
+		pEntity1, pEntity2, pEntity3, err := parseLine(line)
+		if err != nil {
+			lineParsingErrors = append(lineParsingErrors, models.LineProcessingError{
+				ProcessedLine: processedLine,
+				Error:         err.Error(),
+			})
 		} else {
-			if t1SaveMode != SaveMode_Noop && entity1 != nil {
-				entities1[entities1Index] = entity1
-				entities1Index++
+			if t1SaveMode != SaveMode_Noop && pEntity1 != nil {
+				elts1 = append(elts1, entityProcessedLineTuple[T1]{
+					processedLine: processedLine,
+					entity:        *pEntity1,
+				})
 			}
-
-			if t2SaveMode != SaveMode_Noop && entity2 != nil {
-				entities2[entities2Index] = entity2
-				entities2Index++
+			if t2SaveMode != SaveMode_Noop && pEntity2 != nil {
+				elts2 = append(elts2, entityProcessedLineTuple[T2]{
+					processedLine: processedLine,
+					entity:        *pEntity2,
+				})
 			}
-
-			if t3SaveMode != SaveMode_Noop && entity3 != nil {
-				entities3[entities3Index] = entity3
-				entities3Index++
+			if t3SaveMode != SaveMode_Noop && pEntity3 != nil {
+				elts3 = append(elts3, entityProcessedLineTuple[T3]{
+					processedLine: processedLine,
+					entity:        *pEntity3,
+				})
 			}
 		}
 	}
 
-	//todo: update SuccessfulInsertsCount and ErrorsCount in the database
+	lpErrors := make(
+		[]models.LineProcessingError, len(lineParsingErrors),
+		len(lineParsingErrors)+len(elts1)+len(elts2)+len(elts3),
+	)
+	copy(lpErrors, lineParsingErrors)
 
 	savesCount := uint32(0)
-	errorsCount := uint32(0)
-
-	if t1SaveMode != SaveMode_Noop && entities1Index > 0 {
+	if t1SaveMode != SaveMode_Noop && len(elts1) > 0 {
 		saver := entitiesSaver[T1]{gormDB: streamProcessor.gormDB}
-		sc, ec := saver.Perform(t1SaveMode, entities1[0:entities1Index:len(chunk)])
-
-		savesCount += sc
-		errorsCount += ec
+		failingElts := saver.Perform(t1SaveMode, elts1)
+		lpErrsAppender := lpErrorsAppender[T1]{}
+		lpErrors = lpErrsAppender.append(lpErrors, failingElts)
+		savesCount += uint32(len(elts1) - len(failingElts))
 	}
 
-	if t2SaveMode != SaveMode_Noop && entities2Index > 0 {
+	if t2SaveMode != SaveMode_Noop && len(elts2) > 0 {
 		saver := entitiesSaver[T2]{gormDB: streamProcessor.gormDB}
-		sc, ec := saver.Perform(t2SaveMode, entities2[0:entities2Index:len(chunk)])
+		failingElts := saver.Perform(t2SaveMode, elts2)
 
-		savesCount += sc
-		errorsCount += ec
+		lpErrsAppender := lpErrorsAppender[T2]{}
+		lpErrors = lpErrsAppender.append(lpErrors, failingElts)
+		savesCount += uint32(len(elts2) - len(failingElts))
 	}
 
-	if t3SaveMode != SaveMode_Noop && entities3Index > 0 {
+	if t3SaveMode != SaveMode_Noop && len(elts3) > 0 {
 		saver := entitiesSaver[T3]{gormDB: streamProcessor.gormDB}
-		sc, ec := saver.Perform(t3SaveMode, entities3[0:entities3Index:len(chunk)])
-
-		savesCount += sc
-		errorsCount += ec
+		failingElts := saver.Perform(t3SaveMode, elts3)
+		lpErrsAppender := lpErrorsAppender[T3]{}
+		lpErrors = lpErrsAppender.append(lpErrors, failingElts)
+		savesCount += uint32(len(elts3) - len(failingElts))
 	}
 
-	if lpErrorsIndex > 0 {
-		errLpErrors := streamProcessor.gormDB.Create(lpErrors[0:lpErrorsIndex:len(chunk)]).Error
-		if errLpErrors != nil {
-			log.Printf("Failed saving LineProcessingErrors\n") //TODO: provide more detail
+	for _, lpError := range lpErrors {
+		err := streamProcessor.gormDB.Create(&lpError).Error
+		if err != nil {
+			log.Printf("Failed to save LineProcessingError %v for %v\n", lpError, err.Error())
 		}
 	}
 
-	//finalErrorsCount := errorsCount + (insertsCount - successfulInsertsCount)
-	return models.ChunkProcessingReport{SavesCount: savesCount, ErrorsCount: errorsCount}
+	return models.ChunkProcessingReport{SavesCount: savesCount, ErrorsCount: uint32(len(lpErrors))}
 }
 
 func (streamProcessor streamProcessorStruct[T1, T2, T3]) Run(
@@ -234,7 +278,7 @@ func (streamProcessor streamProcessorStruct[T1, T2, T3]) Run(
 	}()
 
 	var chunk []string
-	chunkId := -1
+	chunkId := 0
 	chunkLineOffset := 0
 
 	scanner, err := streamProcessor.openScanner(path)
@@ -255,21 +299,18 @@ func (streamProcessor streamProcessorStruct[T1, T2, T3]) Run(
 
 	for scanner.Scan() {
 		if ignoreFirst {
-			fmt.Println("================= IGNORE")
 			ignoreFirst = false
 			continue
-		} else {
-			fmt.Println("================= NOT IGNORE")
 		}
 
 		line := scanner.Text()
 
 		if chunkLineOffset%CHUNK_LEN == 0 {
-			if chunkId >= 0 {
+			if chunkId > 0 {
 				procChunksGathererWG.Add(1)
 				go func(chunk []string, chunkId int) {
 					chunkProcessingReportsCh <- streamProcessor.processChunk(
-						chunk, chunkId, parseLine,
+						ignoreFirst, chunk, chunkId, parseLine,
 						t1SaveMode, t2SaveMode, t3SaveMode,
 						streamProcessingReport,
 					)
@@ -277,19 +318,20 @@ func (streamProcessor streamProcessorStruct[T1, T2, T3]) Run(
 			}
 
 			chunkLineOffset = 0
-			chunk = make([]string, CHUNK_LEN)
+			chunk = make([]string, 0, CHUNK_LEN)
 			chunkId += 1
 		}
 
-		chunk[chunkLineOffset] = line
+		chunk = append(chunk, line)
 		chunkLineOffset += 1
 	}
 
-	if chunkId >= 0 {
+	if chunkId > 0 {
 		procChunksGathererWG.Add(1)
 		go func(chunk []string, chunkId int) {
 			chunkProcessingReportsCh <- streamProcessor.processChunk(
-				chunk[0:chunkLineOffset:CHUNK_LEN], chunkId, parseLine,
+				ignoreFirst,
+				chunk, chunkId, parseLine,
 				t1SaveMode, t2SaveMode, t3SaveMode,
 				streamProcessingReport,
 			)

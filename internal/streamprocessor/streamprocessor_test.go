@@ -17,7 +17,7 @@ import (
 )
 
 func TestStreamProcessor(t *testing.T) {
-	sqliteDb := sqlite.Open("test_streamprocessor.tdb")
+	sqliteDb := sqlite.Open("test_streamprocessor.tdb?_pragma=busy_timeout(30000)")
 	gormDB, err := gorm.Open(sqliteDb, &gorm.Config{})
 	if err != nil {
 		panic("failed to connect database")
@@ -25,6 +25,7 @@ func TestStreamProcessor(t *testing.T) {
 	gormDB.AutoMigrate(
 		&models.Cluster{}, &models.Node{}, &models.NodeStatus{},
 		&models.StreamProcessingReport{}, &models.LineProcessingError{},
+		&models.ProcessedLine{},
 	)
 
 	streamProcessor := MakeStreamProcessor[models.Cluster, models.Node, models.NodeStatus](gormDB, func(path string) (*bufio.Scanner, error) {
@@ -54,6 +55,7 @@ func TestStreamProcessor(t *testing.T) {
 			pCluster := &models.Cluster{
 				Code: columns[0][1 : len(columns[0])-1],
 			}
+
 			pNode := &models.Node{
 				Code:      columns[1][1 : len(columns[1])-1],
 				ClusterID: pCluster.Code,

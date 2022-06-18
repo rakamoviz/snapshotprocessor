@@ -5,8 +5,8 @@ import (
 	"log"
 	"sync"
 
-	"bitbucket.org/rakamoviz/snapshotprocessor/internal/db/models"
-	"bitbucket.org/rakamoviz/snapshotprocessor/internal/db/models/streamprocessingstatus"
+	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/entities"
+	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/entities/streamprocessingstatus"
 	"gorm.io/gorm"
 )
 
@@ -21,24 +21,24 @@ type StreamProcessor interface {
 	Run(
 		path string,
 		ignoreFirst bool,
-		reportCh chan models.StreamProcessingReport,
+		reportsCh chan<- entities.StreamProcessingReport,
 		processLine ProcessLine,
 	) error
 }
 
-type streamProcessorStruct struct {
+type streamProcessor struct {
 	gormDB      *gorm.DB
 	openScanner OpenScanner
 }
 
-func MakeStreamProcessor(gormDB *gorm.DB, openScanner OpenScanner) StreamProcessor {
-	return streamProcessorStruct{gormDB: gormDB, openScanner: openScanner}
+func New(gormDB *gorm.DB, openScanner OpenScanner) StreamProcessor {
+	return &streamProcessor{gormDB: gormDB, openScanner: openScanner}
 }
 
-func (streamProcessor streamProcessorStruct) processChunk(
+func (sproc *streamProcessor) processChunk(
 	ignoreFirst bool, chunk []string, chunkId int, processLine ProcessLine,
-	report models.StreamProcessingReport,
-) models.ChunkProcessingReport {
+	report entities.StreamProcessingReport,
+) entities.ChunkProcessingReport {
 	lineNumberOffset := uint32((chunkId * CHUNK_LEN) + 1)
 	if ignoreFirst {
 		lineNumberOffset += uint32(1)
@@ -47,16 +47,16 @@ func (streamProcessor streamProcessorStruct) processChunk(
 	errCount := 0
 	for i, line := range chunk {
 		lineNumber := uint32(lineNumberOffset) + uint32(i)
-		err := processLine(line, streamProcessor.gormDB)
+		err := processLine(line, sproc.gormDB)
 		if err != nil {
-			lpError := models.LineProcessingError{
+			lpError := entities.LineProcessingError{
 				LineNumber: lineNumber,
 				Line:       line,
 				ReportID:   report.ID,
 				Error:      err.Error(),
 			}
 
-			err := streamProcessor.gormDB.Create(&lpError).Error
+			err := sproc.gormDB.Create(&lpError).Error
 			if err != nil {
 				log.Printf("Failed to save LineProcessingError %v for %v\n", lpError, err.Error())
 			}
@@ -65,29 +65,29 @@ func (streamProcessor streamProcessorStruct) processChunk(
 		}
 	}
 
-	return models.ChunkProcessingReport{SuccessCount: uint32(len(chunk) - errCount), ErrorsCount: uint32(errCount)}
+	return entities.ChunkProcessingReport{SuccessCount: uint32(len(chunk) - errCount), ErrorsCount: uint32(errCount)}
 }
 
-func (streamProcessor streamProcessorStruct) Run(
+func (sproc *streamProcessor) Run(
 	path string,
 	ignoreFirst bool,
-	reportCh chan models.StreamProcessingReport,
+	reportsCh chan<- entities.StreamProcessingReport,
 	processLine ProcessLine,
 ) error {
 	var procChunksGathererWG sync.WaitGroup
 
-	chunkProcessingReportsCh := make(chan models.ChunkProcessingReport)
+	chunkProcessingReportsCh := make(chan entities.ChunkProcessingReport)
 
-	streamProcessingReport := models.StreamProcessingReport{}
+	streamProcessingReport := entities.StreamProcessingReport{}
 	streamProcessingReport.Path = path
-	streamProcessingReport.ChunkProcessingReport = models.ChunkProcessingReport{
+	streamProcessingReport.ChunkProcessingReport = entities.ChunkProcessingReport{
 		SuccessCount: 0,
 		ErrorsCount:  0,
 	}
 
-	reportCh <- streamProcessingReport
+	reportsCh <- streamProcessingReport
 
-	err := streamProcessor.gormDB.Create(&streamProcessingReport).Error
+	err := sproc.gormDB.Create(&streamProcessingReport).Error
 	if err != nil {
 		return err
 	}
@@ -97,9 +97,9 @@ func (streamProcessor streamProcessorStruct) Run(
 			streamProcessingReport.SuccessCount += chunkProcessingReport.SuccessCount
 			streamProcessingReport.ErrorsCount += chunkProcessingReport.ErrorsCount
 
-			reportCh <- streamProcessingReport
+			reportsCh <- streamProcessingReport
 
-			err = streamProcessor.gormDB.Save(&streamProcessingReport).Error
+			err = sproc.gormDB.Save(&streamProcessingReport).Error
 			if err != nil {
 				log.Printf("Failed updating StreamProcessingReport %v\n", streamProcessingReport) //TODO: provide more detail
 			}
@@ -112,7 +112,7 @@ func (streamProcessor streamProcessorStruct) Run(
 	chunkId := 0
 	chunkLineOffset := 0
 
-	scanner, err := streamProcessor.openScanner(path)
+	scanner, err := sproc.openScanner(path)
 	if err != nil {
 		log.Printf("Failed opening scanner StreamProcessingReport %v\n", streamProcessingReport) //TODO: provide more detail
 		return err
@@ -120,9 +120,9 @@ func (streamProcessor streamProcessorStruct) Run(
 
 	streamProcessingReport.Status = streamprocessingstatus.Running
 
-	reportCh <- streamProcessingReport
+	reportsCh <- streamProcessingReport
 
-	err = streamProcessor.gormDB.Save(&streamProcessingReport).Error
+	err = sproc.gormDB.Save(&streamProcessingReport).Error
 	if err != nil {
 		log.Printf("Failed updating StreamProcessingReport %v\n", streamProcessingReport) //TODO: provide more detail
 		return err
@@ -140,7 +140,7 @@ func (streamProcessor streamProcessorStruct) Run(
 			if chunkId > 0 {
 				procChunksGathererWG.Add(1)
 				go func(chunk []string, chunkId int) {
-					chunkProcessingReportsCh <- streamProcessor.processChunk(
+					chunkProcessingReportsCh <- sproc.processChunk(
 						ignoreFirst, chunk, chunkId, processLine,
 						streamProcessingReport,
 					)
@@ -159,7 +159,7 @@ func (streamProcessor streamProcessorStruct) Run(
 	if chunkId > 0 {
 		procChunksGathererWG.Add(1)
 		go func(chunk []string, chunkId int) {
-			chunkProcessingReportsCh <- streamProcessor.processChunk(
+			chunkProcessingReportsCh <- sproc.processChunk(
 				ignoreFirst,
 				chunk, chunkId, processLine,
 				streamProcessingReport,
@@ -177,13 +177,12 @@ func (streamProcessor streamProcessorStruct) Run(
 		streamProcessingReport.Status = streamprocessingstatus.Partial
 	}
 
-	reportCh <- streamProcessingReport
+	reportsCh <- streamProcessingReport
 
-	err = streamProcessor.gormDB.Save(streamProcessingReport).Error
+	err = sproc.gormDB.Save(streamProcessingReport).Error
 	if err != nil {
 		log.Printf("Failed updating StreamProcessingReport %v\n", streamProcessingReport) //TODO: provide more detail
 	}
 
 	return err
-
 }

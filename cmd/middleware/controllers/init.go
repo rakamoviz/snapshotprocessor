@@ -2,7 +2,7 @@ package controllers
 
 import (
 	"bitbucket.org/rakamoviz/snapshotprocessor/cmd/middleware/controllers/notifications"
-	"bitbucket.org/rakamoviz/snapshotprocessor/internal/streamprocessor"
+	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/workers/streamprocessing"
 	"github.com/labstack/echo/v4"
 )
 
@@ -10,8 +10,8 @@ type Handler interface {
 	Bind(group *echo.Group)
 }
 
-func Setup(g *echo.Group, streamProcessor streamprocessor.StreamProcessor) {
-	notificationsHandler := notifications.NewHandler(streamProcessor)
+func Setup(g *echo.Group, streamProcessingWorker streamprocessing.Worker) {
+	notificationsHandler := notifications.New(streamProcessingWorker)
 	notificationsGroup := g.Group("/notifications")
 	notificationsHandler.Bind(notificationsGroup)
 }

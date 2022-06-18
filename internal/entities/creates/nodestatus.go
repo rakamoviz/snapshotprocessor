@@ -3,8 +3,8 @@ package creates
 import (
 	"time"
 
-	"bitbucket.org/rakamoviz/snapshotprocessor/internal/db/models"
-	"bitbucket.org/rakamoviz/snapshotprocessor/internal/db/repository"
+	"bitbucket.org/rakamoviz/snapshotprocessor/internal/entities"
+	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/repository"
 	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 )
@@ -12,11 +12,11 @@ import (
 func CreateNodeStatus(
 	nodeID string, time time.Time, cpuUsage decimal.Decimal,
 	memoryUsage uint64, diskUsage uint64,
-) repository.Query[models.NodeStatus] {
-	return func(gormDB *gorm.DB) (*models.NodeStatus, error) {
+) repository.QueryOne[entities.NodeStatus] {
+	return func(gormDB *gorm.DB) (entities.NodeStatus, error) {
 		var err error
 
-		pNodeStatus := &models.NodeStatus{
+		nodeStatus := entities.NodeStatus{
 			NodeID:      nodeID,
 			Time:        time,
 			CpuUsage:    cpuUsage,
@@ -24,8 +24,8 @@ func CreateNodeStatus(
 			DiskUsage:   diskUsage,
 		}
 
-		err = gormDB.Create(pNodeStatus).Error
+		err = gormDB.Create(&nodeStatus).Error
 
-		return pNodeStatus, err
+		return nodeStatus, err
 	}
 }

@@ -10,8 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"bitbucket.org/rakamoviz/snapshotprocessor/internal/db/models"
-	"bitbucket.org/rakamoviz/snapshotprocessor/internal/db/models/streamprocessingstatus"
+	internalentities "bitbucket.org/rakamoviz/snapshotprocessor/internal/entities"
+	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/entities"
+	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/entities/streamprocessingstatus"
 	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
 )
@@ -23,11 +24,11 @@ func TestStreamProcessor(t *testing.T) {
 		panic("failed to connect database")
 	}
 	gormDB.AutoMigrate(
-		&models.Cluster{}, &models.Node{}, &models.NodeStatus{},
-		&models.StreamProcessingReport{}, &models.LineProcessingError{},
+		&internalentities.Cluster{}, &internalentities.Node{}, &internalentities.NodeStatus{},
+		&entities.StreamProcessingReport{}, &entities.LineProcessingError{},
 	)
 
-	streamProcessor := MakeStreamProcessor(gormDB, func(path string) (*bufio.Scanner, error) {
+	streamProcessor := New(gormDB, func(path string) (*bufio.Scanner, error) {
 		file, err := os.Open(path)
 
 		if err != nil {
@@ -39,7 +40,7 @@ func TestStreamProcessor(t *testing.T) {
 		return scanner, nil
 	})
 
-	streamProcessingReportCh := make(chan models.StreamProcessingReport)
+	streamProcessingReportCh := make(chan entities.StreamProcessingReport)
 	go streamProcessor.Run(
 		"/home/rcokorda/Projects/snapshotprocessor/sandbox/snapshots.csv",
 		true,
@@ -51,21 +52,21 @@ func TestStreamProcessor(t *testing.T) {
 			}
 
 			return gormDB.Transaction(func(tx *gorm.DB) error {
-				pCluster := &models.Cluster{
+				cluster := internalentities.Cluster{
 					Code: columns[0][1 : len(columns[0])-1],
 				}
 
-				err := gormDB.FirstOrCreate(pCluster, *pCluster).Error
+				err := gormDB.FirstOrCreate(&cluster, cluster).Error
 				if err != nil {
 					return err
 				}
 
-				pNode := &models.Node{
+				node := internalentities.Node{
 					Code:      columns[1][1 : len(columns[1])-1],
-					ClusterID: pCluster.Code,
+					ClusterID: cluster.Code,
 				}
 
-				err = gormDB.FirstOrCreate(pNode, *pNode).Error
+				err = gormDB.FirstOrCreate(&node, node).Error
 				if err != nil {
 					return err
 				}
@@ -75,12 +76,12 @@ func TestStreamProcessor(t *testing.T) {
 					return err
 				}
 
-				pNodeStatus := &models.NodeStatus{
-					NodeID: pNode.Code,
+				nodeStatus := internalentities.NodeStatus{
+					NodeID: node.Code,
 					Time:   time.Unix(timestamp, 0),
 				}
 
-				err = gormDB.Create(pNodeStatus).Error
+				err = gormDB.Create(&nodeStatus).Error
 				if err != nil {
 					return err
 				}

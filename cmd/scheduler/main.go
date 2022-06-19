@@ -37,9 +37,10 @@ func main() {
 		file, err := os.Open(path)
 
 		if err != nil {
-			log.Fatalf("failed to open")
-
+			//log.Fatalf("failed to open", err, path)
+			return nil, err
 		}
+
 		scanner := bufio.NewScanner(file)
 		scanner.Split(bufio.ScanLines)
 		return scanner, nil

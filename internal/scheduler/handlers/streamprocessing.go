@@ -47,6 +47,16 @@ func (h *streamProcessing[T]) Handle(jobData StreamProcessingJobData) error {
 	streamProcessingReportCh := make(chan entities.StreamProcessingReport)
 	errorsCh := make(chan error)
 
+	go func() {
+		for {
+			report := <-streamProcessingReportCh
+			fmt.Printf("Report. Status: %v, Success:%v, Errors:%v\n", report.Status, report.SuccessCount, report.ErrorsCount)
+			if report.Status != streamprocessingstatus.Running && report.Status != streamprocessingstatus.Undefined {
+				break
+			}
+		}
+	}()
+
 	fmt.Println("BANGSAT ")
 	h.streamProcessor.Run(
 		jobData.Path,
@@ -58,14 +68,6 @@ func (h *streamProcessing[T]) Handle(jobData StreamProcessingJobData) error {
 	)
 
 	fmt.Println("ANJINGSSSSSS ")
-
-	for {
-		report := <-streamProcessingReportCh
-		fmt.Printf("Report. Status: %v, Success:%v, Errors:%v\n", report.Status, report.SuccessCount, report.ErrorsCount)
-		if report.Status != streamprocessingstatus.Running && report.Status != streamprocessingstatus.Undefined {
-			break
-		}
-	}
 
 	return nil
 }

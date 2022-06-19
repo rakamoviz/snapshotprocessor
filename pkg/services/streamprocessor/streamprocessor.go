@@ -132,7 +132,9 @@ func (sproc *streamProcessor) Run(
 	chunkId := 0
 	chunkLineOffset := 0
 
+	fmt.Println("TOLOL 2.3", sproc.openScanner)
 	scanner, err := sproc.openScanner(path)
+	fmt.Println("TOLOL 2.4", scanner, err)
 	if err != nil {
 		log.Printf("Failed opening scanner StreamProcessingReport %v\n", streamProcessingReport) //TODO: provide more detail
 		if errorsCh != nil {

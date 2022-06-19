@@ -21,19 +21,15 @@ func MakeAsynqJobHandler[T any](delegate JobHandler[T]) asynqJobHandler[T] {
 }
 
 func (h asynqJobHandler[T]) ProcessTask(ctx context.Context, t *asynq.Task) error {
-	fmt.Println("sshsishsshsihsishis ")
 	var jobData T
 	if err := json.Unmarshal(t.Payload(), &jobData); err != nil {
-		fmt.Println("ABABABABAB ", err)
 		return fmt.Errorf("json.Unmarshal failed %v: %w", err, asynq.SkipRetry)
 	}
 
-	fmt.Println("XXXXXXXXXXXXXXx ", h.delegate, jobData)
 	return h.delegate.Handle(jobData)
 }
 
 func (h asynqJobHandler[T]) Bind(pattern string, s *asynqServer) error {
-	fmt.Println("!!!!!!!!!!!!!!!!!!! ", pattern, h)
 	s.mux.Handle(pattern, h)
 	return nil
 }
@@ -80,7 +76,6 @@ func (c *asynqClient[T]) Schedule(jobData T) (string, error) {
 	task := asynq.NewTask(c.pattern, payload)
 
 	info, err := c.client.Enqueue(task)
-	fmt.Println(">>>>>>>>>>>>>>>>>>>> ", task, c.pattern)
 	if err != nil {
 		return "", err
 	}

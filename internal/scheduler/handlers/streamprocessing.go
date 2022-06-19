@@ -33,7 +33,6 @@ func NewStreamProcessing(
 }
 
 func (h *streamProcessing[T]) Handle(jobData StreamProcessingJobData) error {
-	fmt.Println("MONYEEETETETETET")
 	formats, ok := h.processLines[jobData.Provider]
 	if !ok {
 		return fmt.Errorf("No formats registered for provider %s", jobData.Provider)
@@ -57,7 +56,6 @@ func (h *streamProcessing[T]) Handle(jobData StreamProcessingJobData) error {
 		}
 	}()
 
-	fmt.Println("BANGSAT ")
 	h.streamProcessor.Run(
 		jobData.Path,
 		jobData.ReportReference,
@@ -66,8 +64,6 @@ func (h *streamProcessing[T]) Handle(jobData StreamProcessingJobData) error {
 		errorsCh,
 		processLine,
 	)
-
-	fmt.Println("ANJINGSSSSSS ")
 
 	return nil
 }

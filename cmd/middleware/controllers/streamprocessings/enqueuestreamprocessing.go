@@ -4,8 +4,6 @@ import (
 	"net/http"
 	"strings"
 
-	"fmt"
-
 	"bitbucket.org/rakamoviz/snapshotprocessor/internal/scheduler/handlers"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
@@ -36,8 +34,6 @@ func (c *controller) enqueueStreamProcessing(ctx echo.Context) error {
 		ReportReference: reportReference.String(),
 	}
 	jobID, err := c.streamProcessingScheduler.Schedule(streamProcessingJobData)
-
-	fmt.Println(jobID)
 
 	if err != nil {
 		ctx.String(http.StatusInternalServerError, "can't register job")

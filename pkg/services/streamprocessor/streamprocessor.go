@@ -2,7 +2,6 @@ package streamprocessor
 
 import (
 	"bufio"
-	"fmt"
 	"log"
 	"sync"
 
@@ -79,7 +78,6 @@ func (sproc *streamProcessor) Run(
 	errorsCh chan<- error,
 	processLine ProcessLine,
 ) {
-	fmt.Println("TOLOL 1")
 	var procChunksGathererWG sync.WaitGroup
 
 	chunkProcessingReportsCh := make(chan entities.ChunkProcessingReport)
@@ -93,11 +91,9 @@ func (sproc *streamProcessor) Run(
 		ErrorsCount:  0,
 	}
 
-	fmt.Println("TOLOL 2.0.A")
 	if reportsCh != nil {
 		reportsCh <- streamProcessingReport
 	}
-	fmt.Println("TOLOL 2.0")
 
 	err := sproc.gormDB.Create(&streamProcessingReport).Error
 	if err != nil {
@@ -128,14 +124,11 @@ func (sproc *streamProcessor) Run(
 		}
 	}()
 
-	fmt.Println("TOLOL 2")
 	var chunk []string
 	chunkId := 0
 	chunkLineOffset := 0
 
-	fmt.Println("TOLOL 2.3", sproc.openScanner)
 	scanner, err := sproc.openScanner(path)
-	fmt.Println("TOLOL 2.4", scanner, err)
 	if err != nil {
 		log.Printf("Failed opening scanner StreamProcessingReport %v\n", streamProcessingReport) //TODO: provide more detail
 		if errorsCh != nil {

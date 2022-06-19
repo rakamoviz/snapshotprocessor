@@ -13,8 +13,6 @@ import (
 func (c *controller) getByID(ctx echo.Context) error {
 	id := ctx.Param("id")
 
-	fmt.Println("DKDKDKDKDKDKD")
-
 	var report entities.StreamProcessingReport
 	result := c.gormDB.First(&report, id)
 

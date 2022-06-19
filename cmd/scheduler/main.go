@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"fmt"
 	"log"
 	"os"
 
@@ -71,7 +70,6 @@ func main() {
 	)
 	streamProcessingJobHandler.Bind(string(handlers.StreamProcessing), asynqServer)
 
-	fmt.Println(">>>> Scheduler starting...")
 	err = asynqServer.Start()
 	if err != nil {
 		log.Fatalln(err.Error())

@@ -1,4 +1,4 @@
-package notifications
+package streamprocessings
 
 import (
 	"fmt"

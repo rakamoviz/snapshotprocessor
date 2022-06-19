@@ -1,4 +1,4 @@
-package notifications
+package streamprocessings
 
 import (
 	"net/http"
@@ -7,29 +7,11 @@ import (
 	"fmt"
 
 	"bitbucket.org/rakamoviz/snapshotprocessor/internal/scheduler/handlers"
-	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/scheduler"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 )
 
-type controller struct {
-	streamProcessingScheduler scheduler.Client[handlers.StreamProcessingJobData]
-}
-
-type receiveResponse struct {
-	JobID           string `json:"job_id"`
-	ReportReference string `json:"report_reference"`
-}
-
-func New(streamProcessingScheduler scheduler.Client[handlers.StreamProcessingJobData]) *controller {
-	return &controller{streamProcessingScheduler: streamProcessingScheduler}
-}
-
-func (c *controller) Bind(group *echo.Group) {
-	group.POST("", func(ctx echo.Context) error { return c.receiveNotification(ctx) })
-}
-
-func (c *controller) receiveNotification(ctx echo.Context) error {
+func (c *controller) enqueueStreamProcessing(ctx echo.Context) error {
 	path := ctx.QueryParam("path")
 	if strings.Trim(path, " ") == "" {
 		ctx.String(http.StatusBadRequest, "missing path query parameter")

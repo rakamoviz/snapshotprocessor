@@ -2,7 +2,7 @@ package controllers
 
 import (
 	"bitbucket.org/rakamoviz/snapshotprocessor/cmd/middleware/controllers/clusters"
-	"bitbucket.org/rakamoviz/snapshotprocessor/cmd/middleware/controllers/notifications"
+	"bitbucket.org/rakamoviz/snapshotprocessor/cmd/middleware/controllers/streamprocessings"
 	"bitbucket.org/rakamoviz/snapshotprocessor/internal/scheduler/handlers"
 	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/scheduler"
 	"github.com/labstack/echo/v4"
@@ -17,9 +17,9 @@ func Setup(
 	g *echo.Group, gormDB *gorm.DB,
 	streamProcessingScheduler scheduler.Client[handlers.StreamProcessingJobData],
 ) {
-	notificationsHandler := notifications.New(streamProcessingScheduler)
-	notificationsGroup := g.Group("/notifications")
-	notificationsHandler.Bind(notificationsGroup)
+	streamprocessingsHandler := streamprocessings.New(gormDB, streamProcessingScheduler)
+	streamprocessingsGroup := g.Group("/streamprocessings")
+	streamprocessingsHandler.Bind(streamprocessingsGroup)
 
 	clustersHandler := clusters.New(gormDB)
 	clustersGroup := g.Group("/clusters")

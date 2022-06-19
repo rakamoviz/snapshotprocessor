@@ -1,12 +1,11 @@
 package notifications
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 
-	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/entities/streamprocessingstatus"
 	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/workers/streamprocessing"
+	"fmt"
 	"github.com/labstack/echo/v4"
 )
 
@@ -33,19 +32,15 @@ func (c *controller) post(ctx echo.Context) error {
 		return nil
 	}
 
+	fmt.Println("1")
 	streamProcessingReportCh := c.streamProcessingWorker.AppendJob(path, true, processLine)
+	fmt.Println("2")
 	streamProcessingReport := <-streamProcessingReportCh
+	fmt.Println("3")
 
 	ctx.JSON(http.StatusOK, &postResponse{
 		ReportID: streamProcessingReport.ID,
 	})
 
-	for {
-		report := <-streamProcessingReportCh
-		fmt.Printf("Report. Status: %v, Success:%v, Errors:%v\n", report.Status, report.SuccessCount, report.ErrorsCount)
-		if report.Status != streamprocessingstatus.Running && report.Status != streamprocessingstatus.Undefined {
-			break
-		}
-	}
 	return nil
 }

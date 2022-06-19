@@ -22,8 +22,9 @@ type StreamProcessor interface {
 		path string,
 		ignoreFirst bool,
 		reportsCh chan<- entities.StreamProcessingReport,
+		errorsCh chan<- error,
 		processLine ProcessLine,
-	) error
+	)
 }
 
 type streamProcessor struct {
@@ -72,8 +73,9 @@ func (sproc *streamProcessor) Run(
 	path string,
 	ignoreFirst bool,
 	reportsCh chan<- entities.StreamProcessingReport,
+	errorsCh chan<- error,
 	processLine ProcessLine,
-) error {
+) {
 	var procChunksGathererWG sync.WaitGroup
 
 	chunkProcessingReportsCh := make(chan entities.ChunkProcessingReport)
@@ -89,7 +91,8 @@ func (sproc *streamProcessor) Run(
 
 	err := sproc.gormDB.Create(&streamProcessingReport).Error
 	if err != nil {
-		return err
+		errorsCh <- err
+		return
 	}
 
 	go func() {
@@ -115,7 +118,8 @@ func (sproc *streamProcessor) Run(
 	scanner, err := sproc.openScanner(path)
 	if err != nil {
 		log.Printf("Failed opening scanner StreamProcessingReport %v\n", streamProcessingReport) //TODO: provide more detail
-		return err
+		errorsCh <- err
+		return
 	}
 
 	streamProcessingReport.Status = streamprocessingstatus.Running
@@ -125,7 +129,8 @@ func (sproc *streamProcessor) Run(
 	err = sproc.gormDB.Save(&streamProcessingReport).Error
 	if err != nil {
 		log.Printf("Failed updating StreamProcessingReport %v\n", streamProcessingReport) //TODO: provide more detail
-		return err
+		errorsCh <- err
+		return
 	}
 
 	for scanner.Scan() {
@@ -182,7 +187,7 @@ func (sproc *streamProcessor) Run(
 	err = sproc.gormDB.Save(streamProcessingReport).Error
 	if err != nil {
 		log.Printf("Failed updating StreamProcessingReport %v\n", streamProcessingReport) //TODO: provide more detail
+		errorsCh <- err
+		return
 	}
-
-	return err
 }

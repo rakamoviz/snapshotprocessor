@@ -16,7 +16,7 @@ type controller struct {
 	streamProcessingScheduler scheduler.Client[handlers.StreamProcessingJobData]
 }
 
-type postResponse struct {
+type receiveResponse struct {
 	JobID           string `json:"job_id"`
 	ReportReference string `json:"report_reference"`
 }
@@ -26,10 +26,10 @@ func New(streamProcessingScheduler scheduler.Client[handlers.StreamProcessingJob
 }
 
 func (c *controller) Bind(group *echo.Group) {
-	group.POST("", func(ctx echo.Context) error { return c.post(ctx) })
+	group.POST("", func(ctx echo.Context) error { return c.receiveNotification(ctx) })
 }
 
-func (c *controller) post(ctx echo.Context) error {
+func (c *controller) receiveNotification(ctx echo.Context) error {
 	path := ctx.QueryParam("path")
 	if strings.Trim(path, " ") == "" {
 		ctx.String(http.StatusBadRequest, "missing path query parameter")
@@ -61,7 +61,7 @@ func (c *controller) post(ctx echo.Context) error {
 		ctx.String(http.StatusInternalServerError, "can't register job")
 	}
 
-	ctx.JSON(http.StatusOK, &postResponse{
+	ctx.JSON(http.StatusOK, &receiveResponse{
 		JobID:           jobID,
 		ReportReference: reportReference.String(),
 	})

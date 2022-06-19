@@ -7,10 +7,6 @@ import (
 
 type Entity gorm.Model
 
-func (e Entity) HasID() bool {
-	return e.ID > 0
-}
-
 type ChunkProcessingReport struct {
 	SuccessCount uint32 `gorm:"not null"`
 	ErrorsCount  uint32 `gorm:"not null"`

@@ -1,4 +1,4 @@
-package creates
+package createfirsts
 
 import (
 	"bitbucket.org/rakamoviz/snapshotprocessor/internal/entities"
@@ -6,15 +6,15 @@ import (
 	"gorm.io/gorm"
 )
 
-func Cluster(code string) repository.QueryOne[entities.Cluster] {
+func Cluster_First(code string) repository.QueryOne[entities.Cluster] {
 	return func(gormDB *gorm.DB) (*entities.Cluster, error) {
 		cluster := entities.Cluster{Code: code}
 
-		err := gormDB.Create(&cluster).Error
+		err := gormDB.FirstOrCreate(&cluster, cluster).Error
 		if err != nil {
 			return nil, err
 		}
 
-		return &cluster, err
+		return &cluster, nil
 	}
 }

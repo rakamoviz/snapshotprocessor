@@ -9,13 +9,11 @@ import (
 	"gorm.io/gorm"
 )
 
-func CreateNodeStatus(
+func NodeStatus(
 	nodeID string, time time.Time, cpuUsage decimal.Decimal,
 	memoryUsage uint64, diskUsage uint64,
 ) repository.QueryOne[entities.NodeStatus] {
-	return func(gormDB *gorm.DB) (entities.NodeStatus, error) {
-		var err error
-
+	return func(gormDB *gorm.DB) (*entities.NodeStatus, error) {
 		nodeStatus := entities.NodeStatus{
 			NodeID:      nodeID,
 			Time:        time,
@@ -24,8 +22,8 @@ func CreateNodeStatus(
 			DiskUsage:   diskUsage,
 		}
 
-		err = gormDB.Create(&nodeStatus).Error
+		err := gormDB.Create(&nodeStatus).Error
 
-		return nodeStatus, err
+		return &nodeStatus, err
 	}
 }

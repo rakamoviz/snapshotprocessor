@@ -56,6 +56,9 @@ func main() {
 			"low":      1,
 		},
 	})
+	if err != nil {
+		log.Fatalf("Failed to create AsyncServer %v", err)
+	}
 
 	processLines := map[string]map[string]streamprocessor.ProcessLine{
 		"provider1": {
@@ -68,10 +71,9 @@ func main() {
 	)
 	streamProcessingJobHandler.Bind(string(handlers.StreamProcessing), asynqServer)
 
-	if err != nil {
-		log.Fatalf("Failed to create AsyncServer %v", err)
-	}
-
 	fmt.Println(">>>> Scheduler starting...")
-	asynqServer.Start()
+	err = asynqServer.Start()
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
 }

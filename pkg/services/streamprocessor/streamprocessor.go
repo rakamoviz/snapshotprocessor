@@ -1,13 +1,14 @@
 package streamprocessor
 
 import (
-	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/entities"
-	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/entities/streamprocessingstatus"
 	"bufio"
 	"fmt"
-	"gorm.io/gorm"
 	"log"
 	"sync"
+
+	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/entities"
+	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/entities/streamprocessingstatus"
+	"gorm.io/gorm"
 )
 
 const CHUNK_LEN = 5

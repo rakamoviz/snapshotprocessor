@@ -6,12 +6,12 @@ import (
 
 type (
 	Query[T any]    func(gormDB *gorm.DB) ([]T, error)
-	QueryOne[T any] func(gormDB *gorm.DB) (T, error)
+	QueryOne[T any] func(gormDB *gorm.DB) (*T, error)
 )
 
 type Repository[T any] interface {
 	Execute(query Query[T]) ([]T, error)
-	ExecuteOne(query QueryOne[T]) (T, error)
+	ExecuteOne(query QueryOne[T]) (*T, error)
 }
 
 type repository[T any] struct {
@@ -27,7 +27,7 @@ func (repository *repository[T]) Execute(query Query[T]) ([]T, error) {
 	return result, err
 }
 
-func (repository *repository[T]) ExecuteOne(query QueryOne[T]) (T, error) {
+func (repository *repository[T]) ExecuteOne(query QueryOne[T]) (*T, error) {
 	result, err := query(repository.gormDB)
 	return result, err
 }

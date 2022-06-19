@@ -19,9 +19,11 @@ type ChunkProcessingReport struct {
 type StreamProcessingReport struct {
 	Entity
 	Reference             string `gorm:"uniqueIndex;not null"`
-	ChunkProcessingReport `gorm:"embedded"`
+	Provider              string
+	Format                string
 	Path                  string                      `gorm:"not null"`
 	Status                streamprocessingstatus.Enum `gorm:"not null"`
+	ChunkProcessingReport `gorm:"embedded"`
 }
 
 type LineProcessingError struct {

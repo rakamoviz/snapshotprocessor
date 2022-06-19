@@ -4,21 +4,25 @@ import (
 	"net/http"
 	"strings"
 
-	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/workers/streamprocessing"
 	"fmt"
+
+	"bitbucket.org/rakamoviz/snapshotprocessor/internal/scheduler/handlers"
+	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/scheduler"
+	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 )
 
 type controller struct {
-	streamProcessingWorker streamprocessing.Worker
+	streamProcessingScheduler scheduler.Client[handlers.StreamProcessingJobData]
 }
 
 type postResponse struct {
-	ReportID uint `json:"report_id"`
+	JobID           string `json:"job_id"`
+	ReportReference string `json:"report_reference"`
 }
 
-func New(streamProcessingWorker streamprocessing.Worker) *controller {
-	return &controller{streamProcessingWorker: streamProcessingWorker}
+func New(streamProcessingScheduler scheduler.Client[handlers.StreamProcessingJobData]) *controller {
+	return &controller{streamProcessingScheduler: streamProcessingScheduler}
 }
 
 func (c *controller) Bind(group *echo.Group) {
@@ -31,15 +35,35 @@ func (c *controller) post(ctx echo.Context) error {
 		ctx.String(http.StatusBadRequest, "missing path query parameter")
 		return nil
 	}
+	provider := ctx.QueryParam("provider")
+	if strings.Trim(provider, " ") == "" {
+		ctx.String(http.StatusBadRequest, "missing provider query parameter")
+		return nil
+	}
+	format := ctx.QueryParam("format")
+	if strings.Trim(format, " ") == "" {
+		ctx.String(http.StatusBadRequest, "missing format query parameter")
+		return nil
+	}
 
-	fmt.Println("1")
-	streamProcessingReportCh := c.streamProcessingWorker.AppendJob(path, true, processLine)
-	fmt.Println("2")
-	streamProcessingReport := <-streamProcessingReportCh
-	fmt.Println("3")
+	reportReference := uuid.New()
+	streamProcessingJobData := handlers.StreamProcessingJobData{
+		Provider:        provider,
+		Format:          format,
+		Path:            path,
+		ReportReference: reportReference.String(),
+	}
+	jobID, err := c.streamProcessingScheduler.Schedule(streamProcessingJobData)
+
+	fmt.Println(jobID)
+
+	if err != nil {
+		ctx.String(http.StatusInternalServerError, "can't register job")
+	}
 
 	ctx.JSON(http.StatusOK, &postResponse{
-		ReportID: streamProcessingReport.ID,
+		JobID:           jobID,
+		ReportReference: reportReference.String(),
 	})
 
 	return nil

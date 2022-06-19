@@ -41,10 +41,12 @@ func TestStreamProcessor(t *testing.T) {
 	})
 
 	streamProcessingReportCh := make(chan entities.StreamProcessingReport)
+	errorsCh := make(chan error)
 	go streamProcessor.Run(
 		"/home/rcokorda/Projects/snapshotprocessor/sandbox/snapshots.csv",
 		true,
 		streamProcessingReportCh,
+		errorsCh,
 		func(line string, gormDB *gorm.DB) error {
 			columns := strings.Split(line, ",")
 			if len(columns) < 6 {

@@ -1,13 +1,13 @@
 package streamprocessor
 
 import (
-	"bufio"
-	"log"
-	"sync"
-
 	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/entities"
 	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/entities/streamprocessingstatus"
+	"bufio"
+	"fmt"
 	"gorm.io/gorm"
+	"log"
+	"sync"
 )
 
 const CHUNK_LEN = 5
@@ -20,6 +20,7 @@ type (
 type StreamProcessor interface {
 	Run(
 		path string,
+		reportReference string,
 		ignoreFirst bool,
 		reportsCh chan<- entities.StreamProcessingReport,
 		errorsCh chan<- error,
@@ -32,7 +33,7 @@ type streamProcessor struct {
 	openScanner OpenScanner
 }
 
-func New(gormDB *gorm.DB, openScanner OpenScanner) StreamProcessor {
+func New(gormDB *gorm.DB, openScanner OpenScanner) *streamProcessor {
 	return &streamProcessor{gormDB: gormDB, openScanner: openScanner}
 }
 
@@ -71,27 +72,37 @@ func (sproc *streamProcessor) processChunk(
 
 func (sproc *streamProcessor) Run(
 	path string,
+	reportReference string,
 	ignoreFirst bool,
 	reportsCh chan<- entities.StreamProcessingReport,
 	errorsCh chan<- error,
 	processLine ProcessLine,
 ) {
+	fmt.Println("TOLOL 1")
 	var procChunksGathererWG sync.WaitGroup
 
 	chunkProcessingReportsCh := make(chan entities.ChunkProcessingReport)
 
-	streamProcessingReport := entities.StreamProcessingReport{}
+	streamProcessingReport := entities.StreamProcessingReport{
+		Reference: reportReference,
+	}
 	streamProcessingReport.Path = path
 	streamProcessingReport.ChunkProcessingReport = entities.ChunkProcessingReport{
 		SuccessCount: 0,
 		ErrorsCount:  0,
 	}
 
-	reportsCh <- streamProcessingReport
+	fmt.Println("TOLOL 2.0.A")
+	if reportsCh != nil {
+		reportsCh <- streamProcessingReport
+	}
+	fmt.Println("TOLOL 2.0")
 
 	err := sproc.gormDB.Create(&streamProcessingReport).Error
 	if err != nil {
-		errorsCh <- err
+		if errorsCh != nil {
+			errorsCh <- err
+		}
 		return
 	}
 
@@ -100,17 +111,23 @@ func (sproc *streamProcessor) Run(
 			streamProcessingReport.SuccessCount += chunkProcessingReport.SuccessCount
 			streamProcessingReport.ErrorsCount += chunkProcessingReport.ErrorsCount
 
-			reportsCh <- streamProcessingReport
+			if reportsCh != nil {
+				reportsCh <- streamProcessingReport
+			}
 
 			err = sproc.gormDB.Save(&streamProcessingReport).Error
 			if err != nil {
 				log.Printf("Failed updating StreamProcessingReport %v\n", streamProcessingReport) //TODO: provide more detail
+				if errorsCh != nil {
+					errorsCh <- err
+				}
 			}
 
 			procChunksGathererWG.Done()
 		}
 	}()
 
+	fmt.Println("TOLOL 2")
 	var chunk []string
 	chunkId := 0
 	chunkLineOffset := 0
@@ -118,7 +135,9 @@ func (sproc *streamProcessor) Run(
 	scanner, err := sproc.openScanner(path)
 	if err != nil {
 		log.Printf("Failed opening scanner StreamProcessingReport %v\n", streamProcessingReport) //TODO: provide more detail
-		errorsCh <- err
+		if errorsCh != nil {
+			errorsCh <- err
+		}
 		return
 	}
 
@@ -129,7 +148,9 @@ func (sproc *streamProcessor) Run(
 	err = sproc.gormDB.Save(&streamProcessingReport).Error
 	if err != nil {
 		log.Printf("Failed updating StreamProcessingReport %v\n", streamProcessingReport) //TODO: provide more detail
-		errorsCh <- err
+		if errorsCh != nil {
+			errorsCh <- err
+		}
 		return
 	}
 
@@ -182,12 +203,16 @@ func (sproc *streamProcessor) Run(
 		streamProcessingReport.Status = streamprocessingstatus.Partial
 	}
 
-	reportsCh <- streamProcessingReport
+	if reportsCh != nil {
+		reportsCh <- streamProcessingReport
+	}
 
 	err = sproc.gormDB.Save(streamProcessingReport).Error
 	if err != nil {
 		log.Printf("Failed updating StreamProcessingReport %v\n", streamProcessingReport) //TODO: provide more detail
-		errorsCh <- err
+		if errorsCh != nil {
+			errorsCh <- err
+		}
 		return
 	}
 }

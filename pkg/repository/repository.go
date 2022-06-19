@@ -22,12 +22,12 @@ func New[T any](gormDB *gorm.DB) Repository[T] {
 	return &repository[T]{gormDB: gormDB}
 }
 
-func (repository repository[T]) Execute(query Query[T]) ([]T, error) {
+func (repository *repository[T]) Execute(query Query[T]) ([]T, error) {
 	result, err := query(repository.gormDB)
 	return result, err
 }
 
-func (repository repository[T]) ExecuteOne(query QueryOne[T]) (T, error) {
+func (repository *repository[T]) ExecuteOne(query QueryOne[T]) (T, error) {
 	result, err := query(repository.gormDB)
 	return result, err
 }

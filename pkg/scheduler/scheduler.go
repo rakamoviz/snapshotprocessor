@@ -9,7 +9,7 @@ import (
 )
 
 type JobHandler[T any] interface {
-	Handle(jobData T) error
+	Handle(ctx context.Context, jobData T) error
 }
 
 type asynqJobHandler[T any] struct {
@@ -26,16 +26,16 @@ func (h asynqJobHandler[T]) ProcessTask(ctx context.Context, t *asynq.Task) erro
 		return fmt.Errorf("json.Unmarshal failed %v: %w", err, asynq.SkipRetry)
 	}
 
-	return h.delegate.Handle(jobData)
+	return h.delegate.Handle(context.Background(), jobData)
 }
 
-func (h asynqJobHandler[T]) Bind(pattern string, s *asynqServer) error {
+func (h asynqJobHandler[T]) Bind(ctx context.Context, pattern string, s *asynqServer) error {
 	s.mux.Handle(pattern, h)
 	return nil
 }
 
 type Server interface {
-	Start() error
+	Start(ctx context.Context) error
 }
 
 type asynqServer struct {
@@ -43,7 +43,7 @@ type asynqServer struct {
 	mux *asynq.ServeMux
 }
 
-func (s *asynqServer) Start() error {
+func (s *asynqServer) Start(ctx context.Context) error {
 	return s.srv.Run(s.mux)
 }
 
@@ -54,8 +54,8 @@ func NewAsyncServer(redisClientOpt asynq.RedisClientOpt, config asynq.Config) (*
 }
 
 type Client[T any] interface {
-	Schedule(payload T) (string, error)
-	Close() error
+	Schedule(ctx context.Context, payload T, maxRetry uint8) (string, error)
+	Close(ctx context.Context) error
 }
 
 type asynqClient[T any] struct {
@@ -68,12 +68,12 @@ func NewAsyncClient[T any](pattern string, redisClientOpt asynq.RedisClientOpt) 
 	return &asynqClient[T]{pattern: pattern, client: client}, nil
 }
 
-func (c *asynqClient[T]) Schedule(jobData T) (string, error) {
+func (c *asynqClient[T]) Schedule(ctx context.Context, jobData T, maxRetry uint8) (string, error) {
 	payload, err := json.Marshal(jobData)
 	if err != nil {
 		return "", err
 	}
-	task := asynq.NewTask(c.pattern, payload)
+	task := asynq.NewTask(c.pattern, payload, asynq.MaxRetry(int(maxRetry)))
 
 	info, err := c.client.Enqueue(task)
 	if err != nil {
@@ -83,6 +83,6 @@ func (c *asynqClient[T]) Schedule(jobData T) (string, error) {
 	return info.ID, nil
 }
 
-func (c *asynqClient[T]) Close() error {
+func (c *asynqClient[T]) Close(ctx context.Context) error {
 	return c.client.Close()
 }

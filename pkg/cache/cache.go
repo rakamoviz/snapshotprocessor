@@ -1,24 +1,25 @@
 package cache
 
 import (
+	"context"
 	"fmt"
 )
 
 type Cache interface {
-	Set(key string, value string) error
-	Get(key string) (string, error)
+	Set(ctx context.Context, key string, value string) error
+	Get(ctx context.Context, key string) (string, error)
 }
 
 type memoryCache struct {
 	underlyingData map[string]string
 }
 
-func (p *memoryCache) Set(key string, value string) error {
+func (p *memoryCache) Set(ctx context.Context, key string, value string) error {
 	p.underlyingData[key] = value
 	return nil
 }
 
-func (p *memoryCache) Get(key string) (string, error) {
+func (p *memoryCache) Get(ctx context.Context, key string) (string, error) {
 	value, ok := p.underlyingData[key]
 	if !ok {
 		return "", fmt.Errorf("Key %s not found", key)

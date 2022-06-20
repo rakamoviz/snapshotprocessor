@@ -6,11 +6,13 @@ import (
 	"strings"
 	"time"
 
+	"context"
+
 	"bitbucket.org/rakamoviz/snapshotprocessor/internal/entities"
 	"gorm.io/gorm"
 )
 
-func ProcessFormat1(line string, gormDB *gorm.DB) error {
+func ProcessFormat1(ctx context.Context, line string, gormDB *gorm.DB) error {
 	columns := strings.Split(line, ",")
 	if len(columns) < 6 {
 		return fmt.Errorf("%v: has less than 6 columns", line)

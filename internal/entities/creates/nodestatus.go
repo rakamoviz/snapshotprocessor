@@ -3,6 +3,8 @@ package creates
 import (
 	"time"
 
+	"context"
+
 	"bitbucket.org/rakamoviz/snapshotprocessor/internal/entities"
 	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/repository"
 	"github.com/shopspring/decimal"
@@ -13,7 +15,7 @@ func NodeStatus(
 	nodeID string, time time.Time, cpuUsage decimal.Decimal,
 	memoryUsage uint64, diskUsage uint64,
 ) repository.QueryOne[entities.NodeStatus] {
-	return func(gormDB *gorm.DB) (*entities.NodeStatus, error) {
+	return func(ctx context.Context, gormDB *gorm.DB) (*entities.NodeStatus, error) {
 		nodeStatus := entities.NodeStatus{
 			NodeID:      nodeID,
 			Time:        time,

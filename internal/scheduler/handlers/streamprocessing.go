@@ -1,11 +1,13 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 
 	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/entities"
-	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/entities/streamprocessingstatus"
+	//"bitbucket.org/rakamoviz/snapshotprocessor/pkg/entities/streamprocessingstatus"
 	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/services/streamprocessor"
+	"gorm.io/gorm"
 )
 
 type StreamProcessingJobData struct {
@@ -16,15 +18,18 @@ type StreamProcessingJobData struct {
 }
 
 type streamProcessing[T StreamProcessingJobData] struct {
+	gormDB          *gorm.DB
 	streamProcessor streamprocessor.StreamProcessor
 	processLines    map[string]map[string]streamprocessor.ProcessLine
 }
 
 func NewStreamProcessing(
+	gormDB *gorm.DB,
 	streamProcessor streamprocessor.StreamProcessor,
 	processLines map[string]map[string]streamprocessor.ProcessLine,
 ) *streamProcessing[StreamProcessingJobData] {
 	h := streamProcessing[StreamProcessingJobData]{
+		gormDB:          gormDB,
 		streamProcessor: streamProcessor,
 		processLines:    processLines,
 	}
@@ -32,31 +37,57 @@ func NewStreamProcessing(
 	return &h
 }
 
-func (h *streamProcessing[T]) Handle(jobData StreamProcessingJobData) error {
+func (h *streamProcessing[T]) Handle(ctx context.Context, jobData StreamProcessingJobData) error {
+	streamProcessingReport := entities.StreamProcessingReport{
+		Reference: jobData.ReportReference,
+	}
+	streamProcessingReport.Path = jobData.Path
+	streamProcessingReport.Provider = jobData.Provider
+	streamProcessingReport.Format = jobData.Format
+	streamProcessingReport.ChunkProcessingReport = entities.ChunkProcessingReport{
+		SuccessCount: 0,
+		ErrorsCount:  0,
+	}
+
 	formats, ok := h.processLines[jobData.Provider]
 	if !ok {
-		return fmt.Errorf("No formats registered for provider %s", jobData.Provider)
+		err := fmt.Errorf("No formats registered for provider %s", jobData.Provider)
+		streamProcessingReport.Error = err.Error()
+		errSavingStreamProcessingReport := h.gormDB.Create(&streamProcessingReport)
+		if errSavingStreamProcessingReport != nil {
+			fmt.Println(err.Error())
+		}
+		return err
 	}
 
 	processLine, ok := formats[jobData.Format]
 	if !ok {
-		return fmt.Errorf("No formats registered for provider %s", jobData.Provider)
+		err := fmt.Errorf("No formats registered for provider %s, format %s", jobData.Provider, jobData.Format)
+		streamProcessingReport.Error = err.Error()
+		errSavingStreamProcessingReport := h.gormDB.Create(&streamProcessingReport)
+		if errSavingStreamProcessingReport != nil {
+			fmt.Println(err.Error())
+		}
+		return err
 	}
 
 	streamProcessingReportCh := make(chan entities.StreamProcessingReport)
 	errorsCh := make(chan error)
 
-	go func() {
-		for {
-			report := <-streamProcessingReportCh
-			fmt.Printf("Report. Status: %v, Success:%v, Errors:%v\n", report.Status, report.SuccessCount, report.ErrorsCount)
-			if report.Status != streamprocessingstatus.Running && report.Status != streamprocessingstatus.Undefined {
-				break
+	/*
+		go func() {
+			for {
+				report := <-streamProcessingReportCh
+				fmt.Printf("Report. Status: %v, Success:%v, Errors:%v\n", report.Status, report.SuccessCount, report.ErrorsCount)
+				if report.Status != streamprocessingstatus.Running && report.Status != streamprocessingstatus.Undefined {
+					break
+				}
 			}
-		}
-	}()
+		}()
+	*/
 
 	h.streamProcessor.Run(
+		ctx,
 		jobData.Path,
 		jobData.ReportReference,
 		true,

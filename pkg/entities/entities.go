@@ -20,6 +20,7 @@ type StreamProcessingReport struct {
 	Path                  string                      `gorm:"not null"`
 	Status                streamprocessingstatus.Enum `gorm:"not null"`
 	ChunkProcessingReport `gorm:"embedded"`
+	Error                 string
 }
 
 type LineProcessingError struct {

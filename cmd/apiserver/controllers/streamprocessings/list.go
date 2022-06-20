@@ -10,7 +10,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func (c *controller) getByID(ctx echo.Context) error {
+func (c *controller) list(ctx echo.Context) error {
 	id := ctx.Param("id")
 
 	var report entities.StreamProcessingReport

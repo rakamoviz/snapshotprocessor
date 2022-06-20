@@ -1,6 +1,8 @@
 package creates
 
 import (
+	"context"
+
 	"bitbucket.org/rakamoviz/snapshotprocessor/internal/entities"
 	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/repository"
 	"gorm.io/gorm"
@@ -9,7 +11,7 @@ import (
 func Node(
 	code string, clusterID string,
 ) repository.QueryOne[entities.Node] {
-	return func(gormDB *gorm.DB) (*entities.Node, error) {
+	return func(ctx context.Context, gormDB *gorm.DB) (*entities.Node, error) {
 		node := entities.Node{
 			Code:      code,
 			ClusterID: clusterID,

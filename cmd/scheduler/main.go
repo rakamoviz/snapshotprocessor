@@ -5,6 +5,8 @@ import (
 	"log"
 	"os"
 
+	"context"
+
 	internalentities "bitbucket.org/rakamoviz/snapshotprocessor/internal/entities"
 	"bitbucket.org/rakamoviz/snapshotprocessor/internal/processlines/provider1"
 	"bitbucket.org/rakamoviz/snapshotprocessor/internal/scheduler/handlers"
@@ -32,7 +34,7 @@ func main() {
 		&entities.StreamProcessingReport{}, &entities.LineProcessingError{},
 	)
 
-	streamProcessor := streamprocessor.New(gormDB, func(path string) (*bufio.Scanner, error) {
+	streamProcessor := streamprocessor.New(gormDB, func(ctx context.Context, path string) (*bufio.Scanner, error) {
 		file, err := os.Open(path)
 
 		if err != nil {
@@ -66,11 +68,13 @@ func main() {
 	}
 
 	streamProcessingJobHandler := scheduler.MakeAsynqJobHandler[handlers.StreamProcessingJobData](
-		handlers.NewStreamProcessing(streamProcessor, processLines),
+		handlers.NewStreamProcessing(gormDB, streamProcessor, processLines),
 	)
-	streamProcessingJobHandler.Bind(string(handlers.StreamProcessing), asynqServer)
 
-	err = asynqServer.Start()
+	ctx := context.Background()
+	streamProcessingJobHandler.Bind(ctx, string(handlers.StreamProcessing), asynqServer)
+
+	err = asynqServer.Start(ctx)
 	if err != nil {
 		log.Fatalln(err.Error())
 	}

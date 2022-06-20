@@ -2,6 +2,7 @@ package streamprocessor
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -28,7 +29,7 @@ func TestStreamProcessor(t *testing.T) {
 		&entities.StreamProcessingReport{}, &entities.LineProcessingError{},
 	)
 
-	streamProcessor := New(gormDB, func(path string) (*bufio.Scanner, error) {
+	streamProcessor := New(gormDB, func(ctx context.Context, path string) (*bufio.Scanner, error) {
 		file, err := os.Open(path)
 
 		if err != nil {
@@ -43,6 +44,7 @@ func TestStreamProcessor(t *testing.T) {
 	streamProcessingReportCh := make(chan entities.StreamProcessingReport)
 	errorsCh := make(chan error)
 	go streamProcessor.Run(
+		context.Background(),
 		"/home/rcokorda/Projects/snapshotprocessor/sandbox/snapshots.csv",
 		true,
 		streamProcessingReportCh,

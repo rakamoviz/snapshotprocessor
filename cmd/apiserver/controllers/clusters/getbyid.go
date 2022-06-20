@@ -17,11 +17,11 @@ func (c *controller) getByID(ctx echo.Context) error {
 	result := c.gormDB.First(&cluster, id)
 
 	if result.Error == nil {
-		ctx.JSON(http.StatusOK, cluster)
+		return ctx.JSON(http.StatusOK, cluster)
 	}
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		ctx.String(http.StatusNotFound, fmt.Sprintf("Cluster with id %s not found", id))
+		return ctx.String(http.StatusNotFound, fmt.Sprintf("Cluster with id %s not found", id))
 	}
 
 	return result.Error

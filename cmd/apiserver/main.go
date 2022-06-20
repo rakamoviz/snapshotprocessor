@@ -5,11 +5,13 @@ import (
 
 	"log"
 
-	"bitbucket.org/rakamoviz/snapshotprocessor/cmd/middleware/controllers"
+	"bitbucket.org/rakamoviz/snapshotprocessor/cmd/apiserver/controllers"
+	"bitbucket.org/rakamoviz/snapshotprocessor/cmd/apiserver/middlewares"
 	internalentities "bitbucket.org/rakamoviz/snapshotprocessor/internal/entities"
 	"bitbucket.org/rakamoviz/snapshotprocessor/internal/scheduler/handlers"
 	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/entities"
 	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/scheduler"
+	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/services/auth"
 	"github.com/glebarez/sqlite"
 	"github.com/hibiken/asynq"
 	"github.com/labstack/echo/v4"
@@ -42,9 +44,13 @@ func main() {
 		&entities.StreamProcessingReport{}, &entities.LineProcessingError{},
 	)
 
+	apiKeyCheck := middlewares.NewApiKeyCheck(auth.NewMemoryBasedService(map[string]auth.ApiClient{
+		"abcdef": {Name: "provider1"},
+	}))
+
 	e := echo.New()
 	apiGroup := e.Group("/api")
-	controllers.Setup(apiGroup, gormDB, streamProcessingScheduler)
+	controllers.Setup(apiGroup, gormDB, streamProcessingScheduler, apiKeyCheck)
 
 	e.Logger.Fatal(e.Start(":1323"))
 }

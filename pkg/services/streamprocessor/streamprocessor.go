@@ -2,6 +2,7 @@ package streamprocessor
 
 import (
 	"bufio"
+	"context"
 	"log"
 	"sync"
 
@@ -13,12 +14,13 @@ import (
 const CHUNK_LEN = 5
 
 type (
-	ProcessLine func(line string, gormDB *gorm.DB) error
-	OpenScanner func(path string) (*bufio.Scanner, error)
+	ProcessLine func(ctx context.Context, line string, gormDB *gorm.DB) error
+	OpenScanner func(ctx context.Context, path string) (*bufio.Scanner, error)
 )
 
 type StreamProcessor interface {
 	Run(
+		ctx context.Context,
 		path string,
 		reportReference string,
 		ignoreFirst bool,
@@ -38,6 +40,7 @@ func New(gormDB *gorm.DB, openScanner OpenScanner) *streamProcessor {
 }
 
 func (sproc *streamProcessor) processChunk(
+	ctx context.Context,
 	ignoreFirst bool, chunk []string, chunkId int, processLine ProcessLine,
 	report entities.StreamProcessingReport,
 ) entities.ChunkProcessingReport {
@@ -49,7 +52,7 @@ func (sproc *streamProcessor) processChunk(
 	errCount := 0
 	for i, line := range chunk {
 		lineNumber := uint32(lineNumberOffset) + uint32(i)
-		err := processLine(line, sproc.gormDB)
+		err := processLine(ctx, line, sproc.gormDB)
 		if err != nil {
 			lpError := entities.LineProcessingError{
 				LineNumber: lineNumber,
@@ -71,6 +74,7 @@ func (sproc *streamProcessor) processChunk(
 }
 
 func (sproc *streamProcessor) Run(
+	ctx context.Context,
 	path string,
 	reportReference string,
 	ignoreFirst bool,
@@ -128,7 +132,7 @@ func (sproc *streamProcessor) Run(
 	chunkId := 0
 	chunkLineOffset := 0
 
-	scanner, err := sproc.openScanner(path)
+	scanner, err := sproc.openScanner(ctx, path)
 	if err != nil {
 		log.Printf("Failed opening scanner StreamProcessingReport %v\n", streamProcessingReport) //TODO: provide more detail
 		if errorsCh != nil {
@@ -163,6 +167,7 @@ func (sproc *streamProcessor) Run(
 				procChunksGathererWG.Add(1)
 				go func(chunk []string, chunkId int) {
 					chunkProcessingReportsCh <- sproc.processChunk(
+						ctx,
 						ignoreFirst, chunk, chunkId, processLine,
 						streamProcessingReport,
 					)
@@ -182,6 +187,7 @@ func (sproc *streamProcessor) Run(
 		procChunksGathererWG.Add(1)
 		go func(chunk []string, chunkId int) {
 			chunkProcessingReportsCh <- sproc.processChunk(
+				ctx,
 				ignoreFirst,
 				chunk, chunkId, processLine,
 				streamProcessingReport,

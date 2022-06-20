@@ -21,4 +21,5 @@ func New(clusterRepository repository.Repository[entities.Cluster]) *controller 
 
 func (c *controller) Bind(group *echo.Group) {
 	group.GET("/:id", func(ctx echo.Context) error { return c.getByID(ctx) })
+	group.GET("", func(ctx echo.Context) error { return c.list(ctx) })
 }

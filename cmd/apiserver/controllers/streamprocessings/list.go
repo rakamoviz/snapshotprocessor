@@ -1,13 +1,11 @@
 package streamprocessings
 
 import (
-	//"errors"
 	"net/http"
 
-	//"bitbucket.org/rakamoviz/snapshotprocessor/pkg/entities"
+	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/entities/lists"
 	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/misc"
 	"github.com/labstack/echo/v4"
-	//"gorm.io/gorm"
 )
 
 func (c *controller) list(ctx echo.Context) error {
@@ -16,5 +14,14 @@ func (c *controller) list(ctx echo.Context) error {
 		return ctx.String(http.StatusBadRequest, "Bad Request")
 	}
 
-	return ctx.JSON(http.StatusOK, listQueryParams)
+	streamProcessingReports, err := c.streamProcessingReportRepository.Execute(
+		ctx.Request().Context(),
+		lists.StreamProcessingReports(listQueryParams),
+	)
+
+	if err == nil {
+		return ctx.JSON(http.StatusOK, streamProcessingReports)
+	}
+
+	return err
 }

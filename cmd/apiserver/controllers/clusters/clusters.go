@@ -1,12 +1,13 @@
 package clusters
 
 import (
+	"bitbucket.org/rakamoviz/snapshotprocessor/internal/entities"
+	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/repository"
 	"github.com/labstack/echo/v4"
-	"gorm.io/gorm"
 )
 
 type controller struct {
-	gormDB *gorm.DB
+	clusterRepository repository.Repository[entities.Cluster]
 }
 
 type readResponse struct {
@@ -14,8 +15,8 @@ type readResponse struct {
 	Code string `json:"code"`
 }
 
-func New(gormDB *gorm.DB) *controller {
-	return &controller{gormDB: gormDB}
+func New(clusterRepository repository.Repository[entities.Cluster]) *controller {
+	return &controller{clusterRepository: clusterRepository}
 }
 
 func (c *controller) Bind(group *echo.Group) {

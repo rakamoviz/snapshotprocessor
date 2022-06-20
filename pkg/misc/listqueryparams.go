@@ -6,10 +6,13 @@ import (
 	//"bitbucket.org/rakamoviz/snapshotprocessor/pkg/entities"
 	"fmt"
 
-	"github.com/labstack/echo/v4"
-	//"gorm.io/gorm"
 	"encoding/json"
 	"strings"
+
+	"context"
+
+	"github.com/labstack/echo/v4"
+	"gorm.io/gorm"
 )
 
 type ListQueryParams struct {
@@ -37,4 +40,17 @@ func BindListQueryParams(ctx echo.Context) (ListQueryParams, error) {
 	s := fmt.Sprintf(`{"filter":%s,"range":%s,"sort":%s}`, filterParam, rangeParam, sortParam)
 	var listQueryParams ListQueryParams
 	return listQueryParams, json.Unmarshal([]byte(s), &listQueryParams)
+}
+
+func ListQueryParamsToQuery(ctx context.Context, gormDB *gorm.DB, queryParams ListQueryParams) *gorm.DB {
+	query := gormDB.Where(queryParams.Filter)
+
+	if len(queryParams.Sort) == 2 {
+		query = query.Order(strings.Join(queryParams.Sort, " "))
+	}
+	if len(queryParams.Range) == 2 {
+		query = query.Offset(queryParams.Range[0]).Limit(queryParams.Range[1] - queryParams.Range[0])
+	}
+
+	return query
 }

@@ -9,7 +9,8 @@ import (
 	"bitbucket.org/rakamoviz/snapshotprocessor/cmd/apiserver/middlewares"
 	internalentities "bitbucket.org/rakamoviz/snapshotprocessor/internal/entities"
 	"bitbucket.org/rakamoviz/snapshotprocessor/internal/scheduler/handlers"
-	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/entities"
+	pkgentities "bitbucket.org/rakamoviz/snapshotprocessor/pkg/entities"
+	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/repository"
 	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/scheduler"
 	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/services/auth"
 	"github.com/glebarez/sqlite"
@@ -41,16 +42,26 @@ func main() {
 	}
 	gormDB.AutoMigrate(
 		&internalentities.Cluster{}, &internalentities.Node{}, &internalentities.NodeStatus{},
-		&entities.StreamProcessingReport{}, &entities.LineProcessingError{},
+		&pkgentities.StreamProcessingReport{}, &pkgentities.LineProcessingError{},
 	)
 
 	apiKeyCheck := middlewares.NewApiKeyCheck(auth.NewMemoryBasedService(map[string]auth.ApiClient{
 		"abcdef": {Name: "provider1"},
 	}))
 
+	clusterRepository := repository.New[internalentities.Cluster](gormDB)
+	nodeRepository := repository.New[internalentities.Node](gormDB)
+	nodeStatusRepository := repository.New[internalentities.NodeStatus](gormDB)
+	streamProcessingReportRepository := repository.New[pkgentities.StreamProcessingReport](gormDB)
+	lineProcessingErrorRepository := repository.New[pkgentities.LineProcessingError](gormDB)
+
 	e := echo.New()
 	apiGroup := e.Group("/api")
-	controllers.Setup(apiGroup, gormDB, streamProcessingScheduler, apiKeyCheck)
+	controllers.Setup(
+		apiGroup, gormDB, streamProcessingScheduler, apiKeyCheck,
+		clusterRepository, nodeRepository, nodeStatusRepository, streamProcessingReportRepository,
+		lineProcessingErrorRepository,
+	)
 
 	e.Logger.Fatal(e.Start(":1323"))
 }

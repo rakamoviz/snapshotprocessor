@@ -3,15 +3,17 @@ package streamprocessings
 import (
 	"bitbucket.org/rakamoviz/snapshotprocessor/cmd/apiserver/middlewares"
 	"bitbucket.org/rakamoviz/snapshotprocessor/internal/scheduler/handlers"
+	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/entities"
+	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/repository"
 	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/scheduler"
 	"github.com/labstack/echo/v4"
-	"gorm.io/gorm"
 )
 
 type controller struct {
-	gormDB                    *gorm.DB
-	streamProcessingScheduler scheduler.Client[handlers.StreamProcessingJobData]
-	apiKeyCheckMiddleware     *middlewares.ApiKeyCheck
+	streamProcessingScheduler        scheduler.Client[handlers.StreamProcessingJobData]
+	apiKeyCheckMiddleware            *middlewares.ApiKeyCheck
+	streamProcessingReportRepository repository.Repository[entities.StreamProcessingReport]
+	lineProcessingErrorRepository    repository.Repository[entities.LineProcessingError]
 }
 
 type receiveResponse struct {
@@ -20,10 +22,17 @@ type receiveResponse struct {
 }
 
 func New(
-	gormDB *gorm.DB, streamProcessingScheduler scheduler.Client[handlers.StreamProcessingJobData],
+	streamProcessingScheduler scheduler.Client[handlers.StreamProcessingJobData],
 	apiKeyCheckMiddleware *middlewares.ApiKeyCheck,
+	streamProcessingReportRepository repository.Repository[entities.StreamProcessingReport],
+	lineProcessingErrorRepository repository.Repository[entities.LineProcessingError],
 ) *controller {
-	return &controller{gormDB: gormDB, streamProcessingScheduler: streamProcessingScheduler, apiKeyCheckMiddleware: apiKeyCheckMiddleware}
+	return &controller{
+		streamProcessingScheduler:        streamProcessingScheduler,
+		apiKeyCheckMiddleware:            apiKeyCheckMiddleware,
+		streamProcessingReportRepository: streamProcessingReportRepository,
+		lineProcessingErrorRepository:    lineProcessingErrorRepository,
+	}
 }
 
 func (c *controller) Bind(group *echo.Group) {

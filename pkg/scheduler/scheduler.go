@@ -26,7 +26,7 @@ func (h asynqJobHandler[T]) ProcessTask(ctx context.Context, t *asynq.Task) erro
 		return fmt.Errorf("json.Unmarshal failed %v: %w", err, asynq.SkipRetry)
 	}
 
-	return h.delegate.Handle(context.Background(), jobData)
+	return h.delegate.Handle(ctx, jobData)
 }
 
 func (h asynqJobHandler[T]) Bind(ctx context.Context, pattern string, s *asynqServer) error {

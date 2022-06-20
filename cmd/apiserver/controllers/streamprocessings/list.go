@@ -1,28 +1,20 @@
 package streamprocessings
 
 import (
-	"errors"
-	"fmt"
+	//"errors"
 	"net/http"
 
-	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/entities"
+	//"bitbucket.org/rakamoviz/snapshotprocessor/pkg/entities"
+	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/misc"
 	"github.com/labstack/echo/v4"
-	"gorm.io/gorm"
+	//"gorm.io/gorm"
 )
 
 func (c *controller) list(ctx echo.Context) error {
-	id := ctx.Param("id")
-
-	var report entities.StreamProcessingReport
-	result := c.gormDB.First(&report, id)
-
-	if result.Error == nil {
-		ctx.JSON(http.StatusOK, report)
+	listQueryParams, err := misc.BindListQueryParams(ctx)
+	if err != nil {
+		return ctx.String(http.StatusBadRequest, "Bad Request")
 	}
 
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		ctx.String(http.StatusNotFound, fmt.Sprintf("Stream processing with id %s not found", id))
-	}
-
-	return result.Error
+	return ctx.JSON(http.StatusOK, listQueryParams)
 }

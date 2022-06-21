@@ -9,9 +9,10 @@ import (
 
 	internalentities "bitbucket.org/rakamoviz/snapshotprocessor/internal/entities"
 	"bitbucket.org/rakamoviz/snapshotprocessor/internal/processlines/provider1"
-	"bitbucket.org/rakamoviz/snapshotprocessor/internal/scheduler/handlers"
+	internalhandlers "bitbucket.org/rakamoviz/snapshotprocessor/internal/scheduler/handlers"
 	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/entities"
 	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/scheduler"
+	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/scheduler/handlers"
 	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/services/streamprocessor"
 	"github.com/glebarez/sqlite"
 	"github.com/hibiken/asynq"
@@ -72,7 +73,7 @@ func main() {
 	)
 
 	ctx := context.Background()
-	streamProcessingJobHandler.Bind(ctx, string(handlers.StreamProcessing), asynqServer)
+	streamProcessingJobHandler.Bind(ctx, string(internalhandlers.StreamProcessing), asynqServer)
 
 	err = asynqServer.Start(ctx)
 	if err != nil {

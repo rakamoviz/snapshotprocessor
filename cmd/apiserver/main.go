@@ -8,10 +8,11 @@ import (
 	"bitbucket.org/rakamoviz/snapshotprocessor/cmd/apiserver/controllers"
 	"bitbucket.org/rakamoviz/snapshotprocessor/cmd/apiserver/middlewares"
 	internalentities "bitbucket.org/rakamoviz/snapshotprocessor/internal/entities"
-	"bitbucket.org/rakamoviz/snapshotprocessor/internal/scheduler/handlers"
+	internalhandlers "bitbucket.org/rakamoviz/snapshotprocessor/internal/scheduler/handlers"
 	pkgentities "bitbucket.org/rakamoviz/snapshotprocessor/pkg/entities"
 	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/repository"
 	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/scheduler"
+	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/scheduler/handlers"
 	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/services/auth"
 	"github.com/glebarez/sqlite"
 	"github.com/hibiken/asynq"
@@ -26,7 +27,7 @@ func main() {
 	}
 
 	streamProcessingScheduler, err := scheduler.NewAsyncClient[handlers.StreamProcessingJobData](
-		string(handlers.StreamProcessing),
+		string(internalhandlers.StreamProcessing),
 		asynq.RedisClientOpt{
 			Addr: redisAddr,
 		},

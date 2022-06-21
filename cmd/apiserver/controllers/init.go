@@ -5,10 +5,10 @@ import (
 	"bitbucket.org/rakamoviz/snapshotprocessor/cmd/apiserver/controllers/streamprocessings"
 	"bitbucket.org/rakamoviz/snapshotprocessor/cmd/apiserver/middlewares"
 	internalentities "bitbucket.org/rakamoviz/snapshotprocessor/internal/entities"
-	"bitbucket.org/rakamoviz/snapshotprocessor/internal/scheduler/handlers"
 	pkgentities "bitbucket.org/rakamoviz/snapshotprocessor/pkg/entities"
 	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/repository"
 	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/scheduler"
+	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/scheduler/handlers"
 	"github.com/labstack/echo/v4"
 	"gorm.io/gorm"
 )

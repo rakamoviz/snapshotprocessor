@@ -2,10 +2,10 @@ package streamprocessings
 
 import (
 	"bitbucket.org/rakamoviz/snapshotprocessor/cmd/apiserver/middlewares"
-	"bitbucket.org/rakamoviz/snapshotprocessor/internal/scheduler/handlers"
 	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/entities"
 	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/repository"
 	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/scheduler"
+	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/scheduler/handlers"
 	"github.com/labstack/echo/v4"
 )
 

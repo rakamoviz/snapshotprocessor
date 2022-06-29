@@ -1,4 +1,4 @@
-package clusters
+package nodes
 
 import (
 	"errors"
@@ -17,9 +17,9 @@ func (c *controller) getByID(ctx echo.Context) error {
 		return ctx.String(http.StatusBadRequest, "Incorrect format of id query parameter")
 	}
 
-	node, err := c.clusterRepository.ExecuteOne(
+	node, err := c.nodeRepository.ExecuteOne(
 		ctx.Request().Context(),
-		reads.ClusterByID(uint(id)),
+		reads.NodeByID(uint(id)),
 	)
 
 	if err == nil {

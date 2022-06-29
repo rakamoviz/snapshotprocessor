@@ -1,7 +1,7 @@
 package entities
 
 import (
-	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/entities/streamprocessingstatus"
+	"github.com/rakamoviz/snapshotprocessor/pkg/entities/streamprocessingstatus"
 	"gorm.io/gorm"
 )
 

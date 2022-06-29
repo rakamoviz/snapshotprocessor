@@ -1,10 +1,10 @@
-package streamprocessings
+package nodes
 
 import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
-	"github.com/rakamoviz/snapshotprocessor/pkg/entities/lists"
+	"github.com/rakamoviz/snapshotprocessor/internal/entities/lists"
 	"github.com/rakamoviz/snapshotprocessor/pkg/misc"
 )
 
@@ -14,9 +14,9 @@ func (c *controller) list(ctx echo.Context) error {
 		return ctx.String(http.StatusBadRequest, "Bad Request")
 	}
 
-	streamProcessingReports, err := c.streamProcessingReportRepository.Execute(
+	streamProcessingReports, err := c.nodeRepository.Execute(
 		ctx.Request().Context(),
-		lists.StreamProcessingReports(listQueryParams),
+		lists.Nodes(listQueryParams),
 	)
 
 	if err == nil {

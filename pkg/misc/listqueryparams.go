@@ -3,7 +3,7 @@ package misc
 import (
 	//"errors"
 
-	//"bitbucket.org/rakamoviz/snapshotprocessor/pkg/entities"
+	//"github.com/rakamoviz/snapshotprocessor/pkg/entities"
 	"fmt"
 
 	"encoding/json"

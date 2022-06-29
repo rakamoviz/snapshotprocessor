@@ -1,30 +1,19 @@
 package creates
 
 import (
-	"time"
-
 	"context"
 
-	"bitbucket.org/rakamoviz/snapshotprocessor/internal/entities"
-	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/repository"
-	"github.com/shopspring/decimal"
+	"github.com/rakamoviz/snapshotprocessor/internal/entities"
+	"github.com/rakamoviz/snapshotprocessor/pkg/repository"
 	"gorm.io/gorm"
 )
 
-func NodeStatus(
-	nodeID string, time time.Time, cpuUsage decimal.Decimal,
-	memoryUsage uint64, diskUsage uint64,
-) repository.QueryOne[entities.NodeStatus] {
+func NodeStatus(nodeStatus entities.NodeStatus) repository.QueryOne[entities.NodeStatus] {
 	return func(ctx context.Context, gormDB *gorm.DB) (*entities.NodeStatus, error) {
-		nodeStatus := entities.NodeStatus{
-			NodeID:      nodeID,
-			Time:        time,
-			CpuUsage:    cpuUsage,
-			MemoryUsage: memoryUsage,
-			DiskUsage:   diskUsage,
-		}
-
 		err := gormDB.Create(&nodeStatus).Error
+		if err != nil {
+			return nil, err
+		}
 
 		return &nodeStatus, err
 	}

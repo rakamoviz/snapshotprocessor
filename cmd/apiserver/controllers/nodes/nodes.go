@@ -1,4 +1,4 @@
-package clusters
+package nodes
 
 import (
 	"github.com/labstack/echo/v4"
@@ -7,11 +7,11 @@ import (
 )
 
 type controller struct {
-	clusterRepository repository.Repository[entities.Cluster]
+	nodeRepository repository.Repository[entities.Node]
 }
 
-func New(clusterRepository repository.Repository[entities.Cluster]) *controller {
-	return &controller{clusterRepository: clusterRepository}
+func New(nodeRepository repository.Repository[entities.Node]) *controller {
+	return &controller{nodeRepository: nodeRepository}
 }
 
 func (c *controller) Bind(group *echo.Group) {

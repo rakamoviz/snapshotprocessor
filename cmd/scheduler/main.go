@@ -7,15 +7,15 @@ import (
 
 	"context"
 
-	internalentities "bitbucket.org/rakamoviz/snapshotprocessor/internal/entities"
-	"bitbucket.org/rakamoviz/snapshotprocessor/internal/processlines/provider1"
-	internalhandlers "bitbucket.org/rakamoviz/snapshotprocessor/internal/scheduler/handlers"
-	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/entities"
-	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/scheduler"
-	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/scheduler/handlers"
-	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/services/streamprocessor"
 	"github.com/glebarez/sqlite"
 	"github.com/hibiken/asynq"
+	internalentities "github.com/rakamoviz/snapshotprocessor/internal/entities"
+	"github.com/rakamoviz/snapshotprocessor/internal/processlines/provider1"
+	internalhandlers "github.com/rakamoviz/snapshotprocessor/internal/scheduler/handlers"
+	"github.com/rakamoviz/snapshotprocessor/pkg/entities"
+	"github.com/rakamoviz/snapshotprocessor/pkg/scheduler"
+	"github.com/rakamoviz/snapshotprocessor/pkg/scheduler/handlers"
+	"github.com/rakamoviz/snapshotprocessor/pkg/services/streamprocessor"
 	"gorm.io/gorm"
 )
 

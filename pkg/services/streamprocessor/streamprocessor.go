@@ -6,12 +6,12 @@ import (
 	"log"
 	"sync"
 
-	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/entities"
-	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/entities/streamprocessingstatus"
+	"github.com/rakamoviz/snapshotprocessor/pkg/entities"
+	"github.com/rakamoviz/snapshotprocessor/pkg/entities/streamprocessingstatus"
 	"gorm.io/gorm"
 )
 
-const CHUNK_LEN = 5
+const CHUNK_LEN = 500
 
 type (
 	ProcessLine func(ctx context.Context, line string, gormDB *gorm.DB) error

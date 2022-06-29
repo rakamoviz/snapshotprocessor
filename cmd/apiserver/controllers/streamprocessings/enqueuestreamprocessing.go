@@ -4,10 +4,10 @@ import (
 	"net/http"
 	"strings"
 
-	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/scheduler/handlers"
-	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/services/auth"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
+	"github.com/rakamoviz/snapshotprocessor/pkg/scheduler/handlers"
+	"github.com/rakamoviz/snapshotprocessor/pkg/services/auth"
 )
 
 type enqueueStreamProcessingRequest struct {

@@ -11,10 +11,10 @@ import (
 	"testing"
 	"time"
 
-	internalentities "bitbucket.org/rakamoviz/snapshotprocessor/internal/entities"
-	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/entities"
-	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/entities/streamprocessingstatus"
 	"github.com/glebarez/sqlite"
+	internalentities "github.com/rakamoviz/snapshotprocessor/internal/entities"
+	"github.com/rakamoviz/snapshotprocessor/pkg/entities"
+	"github.com/rakamoviz/snapshotprocessor/pkg/entities/streamprocessingstatus"
 	"gorm.io/gorm"
 )
 

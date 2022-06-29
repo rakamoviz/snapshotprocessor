@@ -1,12 +1,12 @@
 package streamprocessings
 
 import (
-	"bitbucket.org/rakamoviz/snapshotprocessor/cmd/apiserver/middlewares"
-	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/entities"
-	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/repository"
-	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/scheduler"
-	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/scheduler/handlers"
 	"github.com/labstack/echo/v4"
+	"github.com/rakamoviz/snapshotprocessor/cmd/apiserver/middlewares"
+	"github.com/rakamoviz/snapshotprocessor/pkg/entities"
+	"github.com/rakamoviz/snapshotprocessor/pkg/repository"
+	"github.com/rakamoviz/snapshotprocessor/pkg/scheduler"
+	"github.com/rakamoviz/snapshotprocessor/pkg/scheduler/handlers"
 )
 
 type controller struct {

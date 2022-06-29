@@ -11,19 +11,19 @@ import (
 	"gorm.io/gorm"
 )
 
-func Clusters(queryParams misc.ListQueryParams) repository.Query[entities.Cluster] {
-	return func(ctx context.Context, gormDB *gorm.DB) ([]entities.Cluster, error) {
-		var clusters []entities.Cluster
+func Nodes(queryParams misc.ListQueryParams) repository.Query[entities.Node] {
+	return func(ctx context.Context, gormDB *gorm.DB) ([]entities.Node, error) {
+		var nodes []entities.Node
 
 		query := misc.ListQueryParamsToQuery(
 			ctx,
 			gormDB,
 			queryParams,
 		)
-		result := query.Find(&clusters)
+		result := query.Find(&nodes)
 
 		if result.Error == nil {
-			return clusters, nil
+			return nodes, nil
 		}
 
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {

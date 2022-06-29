@@ -5,9 +5,9 @@ import (
 
 	"context"
 
-	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/entities"
-	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/misc"
-	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/repository"
+	"github.com/rakamoviz/snapshotprocessor/pkg/entities"
+	"github.com/rakamoviz/snapshotprocessor/pkg/misc"
+	"github.com/rakamoviz/snapshotprocessor/pkg/repository"
 	"gorm.io/gorm"
 )
 

@@ -1,4 +1,4 @@
-module bitbucket.org/rakamoviz/snapshotprocessor
+module github.com/rakamoviz/snapshotprocessor
 
 go 1.18
 

@@ -4,8 +4,8 @@ import (
 	"log"
 	"net/http"
 
-	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/services/auth"
 	"github.com/labstack/echo/v4"
+	"github.com/rakamoviz/snapshotprocessor/pkg/services/auth"
 )
 
 type ApiKeyCheck struct {

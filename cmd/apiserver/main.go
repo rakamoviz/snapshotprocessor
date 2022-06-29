@@ -5,18 +5,18 @@ import (
 
 	"log"
 
-	"bitbucket.org/rakamoviz/snapshotprocessor/cmd/apiserver/controllers"
-	"bitbucket.org/rakamoviz/snapshotprocessor/cmd/apiserver/middlewares"
-	internalentities "bitbucket.org/rakamoviz/snapshotprocessor/internal/entities"
-	internalhandlers "bitbucket.org/rakamoviz/snapshotprocessor/internal/scheduler/handlers"
-	pkgentities "bitbucket.org/rakamoviz/snapshotprocessor/pkg/entities"
-	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/repository"
-	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/scheduler"
-	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/scheduler/handlers"
-	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/services/auth"
 	"github.com/glebarez/sqlite"
 	"github.com/hibiken/asynq"
 	"github.com/labstack/echo/v4"
+	"github.com/rakamoviz/snapshotprocessor/cmd/apiserver/controllers"
+	"github.com/rakamoviz/snapshotprocessor/cmd/apiserver/middlewares"
+	internalentities "github.com/rakamoviz/snapshotprocessor/internal/entities"
+	internalhandlers "github.com/rakamoviz/snapshotprocessor/internal/scheduler/handlers"
+	pkgentities "github.com/rakamoviz/snapshotprocessor/pkg/entities"
+	"github.com/rakamoviz/snapshotprocessor/pkg/repository"
+	"github.com/rakamoviz/snapshotprocessor/pkg/scheduler"
+	"github.com/rakamoviz/snapshotprocessor/pkg/scheduler/handlers"
+	"github.com/rakamoviz/snapshotprocessor/pkg/services/auth"
 	"gorm.io/gorm"
 )
 
@@ -52,7 +52,7 @@ func main() {
 
 	clusterRepository := repository.New[internalentities.Cluster](gormDB)
 	nodeRepository := repository.New[internalentities.Node](gormDB)
-	nodeStatusRepository := repository.New[internalentities.NodeStatus](gormDB)
+	nodeStatusesRepository := repository.New[internalentities.NodeStatus](gormDB)
 	streamProcessingReportRepository := repository.New[pkgentities.StreamProcessingReport](gormDB)
 	lineProcessingErrorRepository := repository.New[pkgentities.LineProcessingError](gormDB)
 
@@ -60,8 +60,8 @@ func main() {
 	apiGroup := e.Group("/api")
 	controllers.Setup(
 		apiGroup, gormDB, streamProcessingScheduler, apiKeyCheck,
-		clusterRepository, nodeRepository, nodeStatusRepository, streamProcessingReportRepository,
-		lineProcessingErrorRepository,
+		clusterRepository, nodeRepository, nodeStatusesRepository,
+		streamProcessingReportRepository, lineProcessingErrorRepository,
 	)
 
 	e.Logger.Fatal(e.Start(":1323"))

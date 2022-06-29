@@ -1,17 +1,15 @@
 package internal
 
 import (
+	"context"
 	"testing"
 
 	"fmt"
 
-	"time"
-
-	"bitbucket.org/rakamoviz/snapshotprocessor/internal/entities"
-	"bitbucket.org/rakamoviz/snapshotprocessor/internal/entities/creates"
-	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/repository"
 	"github.com/glebarez/sqlite"
-	"github.com/shopspring/decimal"
+	"github.com/rakamoviz/snapshotprocessor/internal/entities"
+	"github.com/rakamoviz/snapshotprocessor/internal/entities/createfirsts"
+	"github.com/rakamoviz/snapshotprocessor/pkg/repository"
 	"gorm.io/gorm"
 )
 
@@ -26,21 +24,23 @@ func TestGorm(t *testing.T) {
 
 	clusterRepository := repository.New[entities.Cluster](gormDB)
 	nodeRepository := repository.New[entities.Node](gormDB)
-	nodeStatusRepository := repository.New[entities.NodeStatus](gormDB)
+	//nodeStatusRepository := repository.New[entities.NodeStatus](gormDB)
 
-	cluster1, err := clusterRepository.ExecuteOne(
-		creates.CreateCluster("clust_123"),
-	)
+	ctx := context.Background()
+
+	cluster := entities.Cluster{Code: "cluster_123"}
+	cluster1, err := clusterRepository.ExecuteOne(ctx, createfirsts.Cluster(cluster))
 	fmt.Println(cluster1, err)
 
-	node1, err := nodeRepository.ExecuteOne(
-		creates.CreateNode("node_1", "clust_123"),
-	)
+	node := entities.Node{Code: "node_1", Cluster: *cluster1}
+	node1, err := nodeRepository.ExecuteOne(ctx, createfirsts.Node(node))
 	fmt.Println(node1, err)
 
-	cpuUsage, _ := decimal.NewFromString("11.22")
-	nodeStatus1, err := nodeStatusRepository.ExecuteOne(
-		creates.CreateNodeStatus("node_1", time.Now(), cpuUsage, uint64(1), uint64(2)),
-	)
-	fmt.Println(nodeStatus1, err)
+	/*
+		cpuUsage, _ := decimal.NewFromString("11.22")
+		nodeStatus1, err := nodeStatusRepository.ExecuteOne(
+			creates.CreateNodeStatus("node_1", time.Now(), cpuUsage, uint64(1), uint64(2)),
+		)
+		fmt.Println(nodeStatus1, err)
+	*/
 }

@@ -3,7 +3,7 @@ package entities
 import (
 	"time"
 
-	pkgentities "bitbucket.org/rakamoviz/snapshotprocessor/pkg/entities"
+	pkgentities "github.com/rakamoviz/snapshotprocessor/pkg/entities"
 	"github.com/shopspring/decimal"
 )
 

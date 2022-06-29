@@ -8,8 +8,8 @@ import (
 
 	"log"
 
-	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/entities/reads"
 	"github.com/labstack/echo/v4"
+	"github.com/rakamoviz/snapshotprocessor/pkg/entities/reads"
 	"gorm.io/gorm"
 )
 

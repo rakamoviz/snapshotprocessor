@@ -5,18 +5,18 @@ import (
 
 	"context"
 
-	"bitbucket.org/rakamoviz/snapshotprocessor/internal/entities"
-	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/repository"
+	"github.com/rakamoviz/snapshotprocessor/internal/entities"
+	"github.com/rakamoviz/snapshotprocessor/pkg/repository"
 	"gorm.io/gorm"
 )
 
 func ClusterByID(id uint) repository.QueryOne[entities.Cluster] {
 	return func(ctx context.Context, gormDB *gorm.DB) (*entities.Cluster, error) {
-		var report entities.Cluster
-		result := gormDB.First(&report, id)
+		var cluster entities.Cluster
+		result := gormDB.First(&cluster, id)
 
 		if result.Error == nil {
-			return &report, nil
+			return &cluster, nil
 		}
 
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {

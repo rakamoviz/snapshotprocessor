@@ -10,13 +10,13 @@ import (
 	"gorm.io/gorm"
 )
 
-func ClusterByCode(code string) repository.QueryOne[entities.Cluster] {
-	return func(ctx context.Context, gormDB *gorm.DB) (*entities.Cluster, error) {
-		var cluster entities.Cluster
-		result := gormDB.Where(map[string]any{"code": code}).First(&cluster)
+func NodeStatusByID(id uint) repository.QueryOne[entities.NodeStatus] {
+	return func(ctx context.Context, gormDB *gorm.DB) (*entities.NodeStatus, error) {
+		var nodeStatus entities.NodeStatus
+		result := gormDB.First(&nodeStatus, id)
 
 		if result.Error == nil {
-			return &cluster, nil
+			return &nodeStatus, nil
 		}
 
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {

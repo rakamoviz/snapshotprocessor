@@ -3,9 +3,9 @@ package clusters
 import (
 	"net/http"
 
-	"bitbucket.org/rakamoviz/snapshotprocessor/internal/entities/lists"
-	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/misc"
 	"github.com/labstack/echo/v4"
+	"github.com/rakamoviz/snapshotprocessor/internal/entities/lists"
+	"github.com/rakamoviz/snapshotprocessor/pkg/misc"
 )
 
 func (c *controller) list(ctx echo.Context) error {

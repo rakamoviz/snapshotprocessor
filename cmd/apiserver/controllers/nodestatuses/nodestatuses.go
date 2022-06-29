@@ -1,4 +1,4 @@
-package clusters
+package nodestatuses
 
 import (
 	"github.com/labstack/echo/v4"
@@ -7,14 +7,13 @@ import (
 )
 
 type controller struct {
-	clusterRepository repository.Repository[entities.Cluster]
+	nodeStatusRepository repository.Repository[entities.NodeStatus]
 }
 
-func New(clusterRepository repository.Repository[entities.Cluster]) *controller {
-	return &controller{clusterRepository: clusterRepository}
+func New(nodeStatusRepository repository.Repository[entities.NodeStatus]) *controller {
+	return &controller{nodeStatusRepository: nodeStatusRepository}
 }
 
 func (c *controller) Bind(group *echo.Group) {
 	group.GET("/:id", func(ctx echo.Context) error { return c.getByID(ctx) })
-	group.GET("", func(ctx echo.Context) error { return c.list(ctx) })
 }

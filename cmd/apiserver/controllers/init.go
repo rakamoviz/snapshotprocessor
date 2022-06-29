@@ -1,15 +1,17 @@
 package controllers
 
 import (
-	"bitbucket.org/rakamoviz/snapshotprocessor/cmd/apiserver/controllers/clusters"
-	"bitbucket.org/rakamoviz/snapshotprocessor/cmd/apiserver/controllers/streamprocessings"
-	"bitbucket.org/rakamoviz/snapshotprocessor/cmd/apiserver/middlewares"
-	internalentities "bitbucket.org/rakamoviz/snapshotprocessor/internal/entities"
-	pkgentities "bitbucket.org/rakamoviz/snapshotprocessor/pkg/entities"
-	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/repository"
-	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/scheduler"
-	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/scheduler/handlers"
 	"github.com/labstack/echo/v4"
+	"github.com/rakamoviz/snapshotprocessor/cmd/apiserver/controllers/clusters"
+	"github.com/rakamoviz/snapshotprocessor/cmd/apiserver/controllers/nodes"
+	"github.com/rakamoviz/snapshotprocessor/cmd/apiserver/controllers/nodestatuses"
+	"github.com/rakamoviz/snapshotprocessor/cmd/apiserver/controllers/streamprocessings"
+	"github.com/rakamoviz/snapshotprocessor/cmd/apiserver/middlewares"
+	internalentities "github.com/rakamoviz/snapshotprocessor/internal/entities"
+	pkgentities "github.com/rakamoviz/snapshotprocessor/pkg/entities"
+	"github.com/rakamoviz/snapshotprocessor/pkg/repository"
+	"github.com/rakamoviz/snapshotprocessor/pkg/scheduler"
+	"github.com/rakamoviz/snapshotprocessor/pkg/scheduler/handlers"
 	"gorm.io/gorm"
 )
 
@@ -39,4 +41,16 @@ func Setup(
 	)
 	clustersGroup := g.Group("/clusters")
 	clustersHandler.Bind(clustersGroup)
+
+	nodesHandler := nodes.New(
+		nodeRepository,
+	)
+	nodesGroup := g.Group("/nodes")
+	nodesHandler.Bind(nodesGroup)
+
+	nodeStatusesHandler := nodestatuses.New(
+		nodeStatusRepository,
+	)
+	nodeStatusesGroup := g.Group("/nodestatuses")
+	nodeStatusesHandler.Bind(nodeStatusesGroup)
 }

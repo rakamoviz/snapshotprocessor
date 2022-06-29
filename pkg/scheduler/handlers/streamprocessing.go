@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/entities"
-	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/entities/streamprocessingstatus"
-	"bitbucket.org/rakamoviz/snapshotprocessor/pkg/services/streamprocessor"
+	"github.com/rakamoviz/snapshotprocessor/pkg/entities"
+	"github.com/rakamoviz/snapshotprocessor/pkg/entities/streamprocessingstatus"
+	"github.com/rakamoviz/snapshotprocessor/pkg/services/streamprocessor"
 	"gorm.io/gorm"
 )
 
